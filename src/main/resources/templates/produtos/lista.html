@@ -13,6 +13,7 @@
             <div th:replace="~{fragments/sidebar :: sidebar}"></div>
         </aside>
 
+        <div th:fragment="content">
         <div class="container mt-5">
             <h1 class="mb-4">Gestão de Produtos</h1>
 
@@ -24,7 +25,7 @@
             <!-- Formulário de Cadastro -->
             <div class="collapse" id="formularioProduto">
                 <div class="card card-body">
-                    <form th:action="@{/api/produtos}" method="post" id="produtoForm">
+                    <form th:action="@{/produtos/salvar}" method="post" id="produtoForm">
                         <div class="mb-3">
                             <label for="nome" class="form-label">Nome do Produto</label>
                             <input type="text" id="nome" name="nome" class="form-control" placeholder="Nome do Produto" required>
@@ -49,6 +50,7 @@
 
                         <div class="form-check mb-3">
                             <input type="checkbox" id="ativo" name="ativo" class="form-check-input">
+                            <input type="hidden" name="_ativo" value="on">
                             <label for="ativo" class="form-check-label">Produto Ativo</label>
                         </div>
 
@@ -80,15 +82,16 @@
                         <td th:text="${#numbers.formatDecimal(produto.preco, 1, 'COMMA', 2, 'POINT')}"></td>
                         <td th:text="${produto.ativo ? 'Sim' : 'Não'}">Sim</td>
                         <td>
-                            <a th:href="@{/api/produtos/{id}(id=${produto.id})}" class="btn btn-warning btn-sm">Editar</a>
-                            <a th:href="@{/api/produtos/{id}(id=${produto.id})}" class="btn btn-danger btn-sm" 
-                               onclick="return confirm('Tem certeza que deseja excluir este produto?');">
-                                Excluir
-                            </a>
+                            <a th:href="@{/produtos/editar/{id}(id=${produto.id})}" class="btn btn-warning btn-sm">Editar</a>
+                            <form th:action="@{/produtos/excluir/{id}(id=${produto.id})}" method="post" class="d-inline"
+                                  onsubmit="return confirm('Tem certeza que deseja excluir este produto?');">
+                                <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                            </form>
                         </td>
                     </tr>
                 </tbody>
             </table>
+        </div>
         </div>
         <script th:src="@{/js/script.js}"></script>
     </body>

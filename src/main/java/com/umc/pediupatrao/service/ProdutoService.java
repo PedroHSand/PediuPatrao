@@ -5,6 +5,7 @@ import com.umc.pediupatrao.repository.ProdutoRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Optional;
 
 @Service
 public class ProdutoService {
@@ -20,6 +21,9 @@ public class ProdutoService {
         return produtoRepository.findAll();
     }
 
+    public Optional<Produto> buscarPorId(String id) {
+        return produtoRepository.findById(id);
+    }
     // Método para excluir cliente
     public void excluir(String id) {
         produtoRepository.deleteById(id);
@@ -37,7 +41,7 @@ public class ProdutoService {
             if (produtoRepository.existsById(produto.getId())) {
                 return produtoRepository.save(produto);  // Atualiza o cliente existente
             } else {
-                throw new IllegalArgumentException("Cliente não encontrado para atualização.");
+                throw new IllegalArgumentException("Produto não encontrado para atualização.");
             }
         }
     }

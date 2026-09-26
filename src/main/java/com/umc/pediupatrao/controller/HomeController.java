@@ -129,8 +129,55 @@ public class HomeController {
         List<Produto> produtos = produtoService.listarProdutos();
         model.addAttribute("produtos", produtos);
         model.addAttribute("content", "produtos/lista :: content");
-        log.info("Carregando fragmento: produtos/lista :: content");
         return "layout";
+    }
+
+    @GetMapping("/produtos/novo")
+    public String novoProdutoForm(Model model) {
+        Produto produto = new Produto();
+        produto.setAtivo(true);
+        model.addAttribute("produto", produto);
+        model.addAttribute("content", "produtos/produto-form :: content");
+        return "layout";
+    }
+
+    @PostMapping("/produtos/salvar")
+    public String salvarProduto(@ModelAttribute Produto produto,
+            RedirectAttributes redirectAttributes) {
+        produtoService.salvar(produto);
+        redirectAttributes.addFlashAttribute("sucesso", "Produto criado com sucesso!");
+        return "redirect:/produtos";
+    }
+
+    @GetMapping("/produtos/editar/{id}")
+    public String editarProdutoForm(@PathVariable String id, Model model,
+            RedirectAttributes redirectAttributes) {
+        return produtoService.buscarPorId(id).map(p -> {
+            model.addAttribute("produto", p);
+            model.addAttribute("content", "produtos/produto-form :: content");
+            return "layout";
+        }).orElseGet(() -> {
+            redirectAttributes.addFlashAttribute("erro", "Produto não encontrado.");
+            return "redirect:/produtos";
+        });
+    }
+
+    @PostMapping("/produtos/editar/{id}")
+    public String atualizarProduto(@PathVariable String id,
+            @ModelAttribute Produto produto,
+            RedirectAttributes redirectAttributes) {
+        produto.setId(id);
+        produtoService.salvar(produto);
+        redirectAttributes.addFlashAttribute("sucesso", "Produto atualizado com sucesso!");
+        return "redirect:/produtos";
+    }
+
+    @PostMapping("/produtos/excluir/{id}")
+    public String excluirProduto(@PathVariable String id,
+            RedirectAttributes redirectAttributes) {
+        produtoService.excluir(id);
+        redirectAttributes.addFlashAttribute("sucesso", "Produto excluído com sucesso!");
+        return "redirect:/produtos";
     }
 
     // ========================
