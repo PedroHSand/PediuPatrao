@@ -1,5 +1,6 @@
 # Maven
 /target/
+secrets.properties
 
 # NetBeans
 /nbproject/private/
