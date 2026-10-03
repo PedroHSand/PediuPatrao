@@ -68,26 +68,43 @@
 
             clientes.forEach(cliente => {
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${cliente.nome || '—'}</td>
-                    <td>${cliente.telefone || '—'}</td>
-                    <td>${formatarEndereco(cliente)}</td>
-                    <td class="text-end pe-4">
-                        <a href="/clientes/editar/${cliente.id}" class="btn btn-sm btn-outline-primary me-1">
-                            <i class="bi bi-pencil-fill"></i> Editar
-                        </a>
-                        <button class="btn btn-sm btn-outline-danger" onclick="excluirCliente('${cliente.id}')">
-                            <i class="bi bi-trash-fill"></i> Excluir
-                        </button>
-                    </td>
-                `;
+
+                const colNome = document.createElement('td');
+                colNome.textContent = cliente.nome || '—';
+
+                const colTelefone = document.createElement('td');
+                colTelefone.textContent = cliente.telefone || '—';
+
+                const colEndereco = document.createElement('td');
+                colEndereco.textContent = formatarEndereco(cliente);
+
+                const colAcoes = document.createElement('td');
+                colAcoes.className = 'text-end pe-4';
+
+                const linkEditar = document.createElement('a');
+                linkEditar.href = '/clientes/editar/' + encodeURIComponent(cliente.id);
+                linkEditar.className = 'btn btn-sm btn-outline-primary me-1';
+                linkEditar.innerHTML = '<i class="bi bi-pencil-fill"></i> Editar';
+
+                const botaoExcluir = document.createElement('button');
+                botaoExcluir.className = 'btn btn-sm btn-outline-danger';
+                botaoExcluir.innerHTML = '<i class="bi bi-trash-fill"></i> Excluir';
+                botaoExcluir.addEventListener('click', () => excluirCliente(cliente.id));
+
+                colAcoes.append(linkEditar, botaoExcluir);
+                row.append(colNome, colTelefone, colEndereco, colAcoes);
                 tabelaClientes.appendChild(row);
             });
         }
 
         async function excluirCliente(id) {
             if (confirm('Tem certeza que deseja excluir este cliente?')) {
-                const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                const token = document.querySelector('meta[name="_csrf"]').content;
+                const header = document.querySelector('meta[name="_csrf_header"]').content;
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE',
+                    headers: { [header]: token }
+                });
                 if (response.ok) {
                     alert('Cliente excluído com sucesso!');
                     carregarClientes();
