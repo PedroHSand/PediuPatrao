@@ -15,13 +15,18 @@ public class Pedido {
     @Id
     private String id;
     private String clienteId;
+    private String tipoPizza;
     private String status;
+    private int quantidade;
+    private String sabor;
     private List<ItemPedido> itens = new ArrayList<>();
     private TipoAtendimento tipoAtendimento;
     private BigDecimal percentualDesconto = BigDecimal.ZERO;
     private BigDecimal valorTotal;
     private String registradoPor;
     private LocalDateTime entradaEm;
+    private LocalDateTime saidaEm;
+    private String saidaPor;
 
     public String getId() {
         return id;
@@ -39,12 +44,36 @@ public class Pedido {
         this.clienteId = clienteId;
     }
 
+    public String getTipoPizza() {
+        return tipoPizza;
+    }
+
+    public void setTipoPizza(String tipoPizza) {
+        this.tipoPizza = tipoPizza;
+    }
+
     public String getStatus() {
         return status;
     }
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public int getQuantidade() {
+        return quantidade;
+    }
+
+    public void setQuantidade(int quantidade) {
+        this.quantidade = quantidade;
+    }
+
+    public String getSabor() {
+        return sabor;
+    }
+
+    public void setSabor(String sabor) {
+        this.sabor = sabor;
     }
 
     public List<ItemPedido> getItens() {
@@ -93,6 +122,22 @@ public class Pedido {
 
     public void setEntradaEm(LocalDateTime entradaEm) {
         this.entradaEm = entradaEm;
+    }
+
+    public LocalDateTime getSaidaEm() {
+        return saidaEm;
+    }
+
+    public void setSaidaEm(LocalDateTime saidaEm) {
+        this.saidaEm = saidaEm;
+    }
+
+    public String getSaidaPor() {
+        return saidaPor;
+    }
+
+    public void setSaidaPor(String saidaPor) {
+        this.saidaPor = saidaPor;
     }
     
     

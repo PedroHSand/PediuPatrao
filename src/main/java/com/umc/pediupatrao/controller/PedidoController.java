@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -30,9 +31,31 @@ public class PedidoController {
         return pedidoService.listarPedidos();
     }
 
+    @PutMapping("/{id}/cancelar")
+    public ResponseEntity<?> cancelar(@PathVariable String id, @RequestParam String justificativa) {
+        try {
+            return ResponseEntity.ok(pedidoService.cancelar(id, justificativa));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}/desconto")
+    public ResponseEntity<?> aplicarDesconto(@PathVariable String id, @RequestParam BigDecimal percentual) {
+        try {
+            return ResponseEntity.ok(pedidoService.aplicarDesconto(id, percentual));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        }
+    }
+
     @PutMapping("/{id}/status")
-    public Pedido atualizarStatus(@PathVariable String id, @RequestParam String status) {
-        return pedidoService.atualizarStatus(id, status);
+    public ResponseEntity<?> atualizarStatus(@PathVariable String id, @RequestParam String status) {
+        try {
+            return ResponseEntity.ok(pedidoService.atualizarStatus(id, status));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        }
     }
     
     

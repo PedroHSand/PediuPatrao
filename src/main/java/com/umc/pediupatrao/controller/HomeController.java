@@ -7,10 +7,13 @@ import com.umc.pediupatrao.entity.Cliente;
 import com.umc.pediupatrao.entity.Pedido;
 import com.umc.pediupatrao.entity.Produto;
 import com.umc.pediupatrao.entity.Usuario;
+import com.umc.pediupatrao.entity.TipoOperacao;
+import com.umc.pediupatrao.service.AuditoriaService;
 import com.umc.pediupatrao.service.ClienteService;
 import com.umc.pediupatrao.service.PedidoService;
 import com.umc.pediupatrao.service.ProdutoService;
 import com.umc.pediupatrao.service.UsuarioService;
+import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -41,6 +45,9 @@ public class HomeController {
 
     @Autowired
     private UsuarioService usuarioService;
+
+    @Autowired
+    private AuditoriaService auditoriaService;
 
     @GetMapping("/login")
     public String login() {
@@ -141,12 +148,63 @@ public class HomeController {
         boolean podeRegistrar = sessao.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_GERENTE") || a.getAuthority().equals("ROLE_ATENDENTE"));
 
+        Map<String, String> proximosStatus = new HashMap<>();
+        for (Pedido pedido : pedidos) {
+            proximosStatus.put(pedido.getId(), pedidoService.proximoStatus(pedido));
+        }
+
+        Map<String, Boolean> abertos = new HashMap<>();
+        for (Pedido pedido : pedidos) {
+            abertos.put(pedido.getId(), pedidoService.aindaNaoSaiu(pedido));
+        }
+
+        boolean podeGerenciar = sessao.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_GERENTE"));
+
         model.addAttribute("pedidos", pedidos);
+        model.addAttribute("abertos", abertos);
+        model.addAttribute("podeGerenciar", podeGerenciar);
+        model.addAttribute("proximosStatus", proximosStatus);
         model.addAttribute("nomesClientes", nomesClientes);
         model.addAttribute("podeRegistrar", podeRegistrar);
         model.addAttribute("content", "pedidos :: content");
         log.info("Carregando fragmento: pedidos :: content");
         return "layout";
+    }
+
+    @PostMapping("/pedidos/{id}/avancar")
+    public String avancarPedido(@PathVariable String id, RedirectAttributes redirectAttributes) {
+        try {
+            Pedido pedido = pedidoService.avancarStatus(id);
+            redirectAttributes.addFlashAttribute("sucesso", "Pedido avançou para " + pedido.getStatus() + ".");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("erro", e.getMessage());
+        }
+        return "redirect:/pedidos";
+    }
+
+    @PostMapping("/pedidos/{id}/cancelar")
+    public String cancelarPedido(@PathVariable String id, @RequestParam String justificativa,
+            RedirectAttributes redirectAttributes) {
+        try {
+            pedidoService.cancelar(id, justificativa);
+            redirectAttributes.addFlashAttribute("sucesso", "Pedido cancelado.");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("erro", e.getMessage());
+        }
+        return "redirect:/pedidos";
+    }
+
+    @PostMapping("/pedidos/{id}/desconto")
+    public String descontoPedido(@PathVariable String id, @RequestParam BigDecimal percentual,
+            RedirectAttributes redirectAttributes) {
+        try {
+            pedidoService.aplicarDesconto(id, percentual);
+            redirectAttributes.addFlashAttribute("sucesso", "Desconto de " + percentual + "% aplicado.");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("erro", e.getMessage());
+        }
+        return "redirect:/pedidos";
     }
 
     @GetMapping("/pedidos/novo")
@@ -174,6 +232,22 @@ public class HomeController {
             redirectAttributes.addFlashAttribute("erro", e.getMessage());
             return "redirect:/pedidos/novo";
         }
+    }
+
+    // ========================
+    // AUDITORIA
+    // ========================
+    @GetMapping("/auditoria")
+    public String auditoria(@RequestParam(required = false) String usuario,
+            @RequestParam(required = false) TipoOperacao operacao,
+            @RequestParam(required = false) String entidade, Model model) {
+        model.addAttribute("registros", auditoriaService.consultar(usuario, operacao, entidade));
+        model.addAttribute("operacoes", TipoOperacao.values());
+        model.addAttribute("filtroUsuario", usuario);
+        model.addAttribute("filtroOperacao", operacao);
+        model.addAttribute("filtroEntidade", entidade);
+        model.addAttribute("content", "auditoria :: content");
+        return "layout";
     }
 
     // ========================

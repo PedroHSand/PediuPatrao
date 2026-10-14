@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Auditoria</title>
+</head>
+<body>
+
+<div th:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-journal-text me-2 text-primary"></i>Auditoria
+        </h2>
+        <span class="text-muted" th:if="${!#lists.isEmpty(registros)}">
+            <strong th:text="${#lists.size(registros)}"></strong> registro(s)
+        </span>
+    </div>
+
+    <form method="get" th:action="@{/auditoria}" class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="usuario" class="form-label fw-medium">Usuário</label>
+                    <input type="text" id="usuario" name="usuario" class="form-control"
+                           th:value="${filtroUsuario}" placeholder="Ex: balcao">
+                </div>
+                <div class="col-md-4">
+                    <label for="operacao" class="form-label fw-medium">Operação</label>
+                    <select id="operacao" name="operacao" class="form-select">
+                        <option value="">Todas</option>
+                        <option th:each="op : ${operacoes}"
+                                th:value="${op}"
+                                th:text="${op.descricao}"
+                                th:selected="${filtroOperacao == op}"></option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="entidade" class="form-label fw-medium">Entidade</label>
+                    <select id="entidade" name="entidade" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="Cliente" th:selected="${filtroEntidade == 'Cliente'}">Cliente</option>
+                        <option value="Pedido" th:selected="${filtroEntidade == 'Pedido'}">Pedido</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a th:href="@{/auditoria}" class="btn btn-outline-secondary">Limpar</a>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="alert alert-light border text-center py-5" th:if="${#lists.isEmpty(registros)}">
+        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+        Nenhum registro encontrado.
+    </div>
+
+    <div class="card shadow-sm mb-3" th:each="registro : ${registros}">
+
+        <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="badge fs-6"
+                      th:classappend="${registro.operacao.name() == 'CANCELAMENTO' or registro.operacao.name() == 'EXCLUSAO_CLIENTE'} ? 'bg-danger' :
+                                      (${registro.operacao.name() == 'DESCONTO'} ? 'bg-warning text-dark' :
+                                      (${registro.operacao.name().startsWith('CRIACAO')} ? 'bg-success' : 'bg-primary'))"
+                      th:text="${registro.operacao.descricao}"></span>
+                <span class="fw-semibold" th:text="${registro.entidade}"></span>
+                <span class="text-muted small font-monospace" th:text="${registro.entidadeId}"></span>
+            </div>
+            <div class="text-muted">
+                <i class="bi bi-clock me-1"></i>
+                <span th:text="${#temporals.format(registro.dataHora, 'dd/MM/yyyy HH:mm')}"></span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="text-muted mb-3">
+                <i class="bi bi-person-circle me-1"></i>
+                Feito por <strong class="text-body" th:text="${registro.usuario}"></strong>
+                <span class="badge bg-secondary ms-1" th:text="${registro.perfil}"></span>
+            </div>
+
+            <div class="row align-items-center py-2 border-top"
+                 th:each="alteracao : ${registro.alteracoes}">
+                <div class="col-md-4 fw-medium" th:text="${alteracao.campo}"></div>
+                <div class="col-md-8 d-flex flex-wrap align-items-center gap-2">
+                    <span class="badge bg-light text-dark border fw-normal fs-6"
+                          th:text="${#strings.isEmpty(alteracao.valorAnterior)} ? '—' : ${alteracao.valorAnterior}"></span>
+                    <i class="bi bi-arrow-right text-muted"></i>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success fw-semibold fs-6"
+                          th:text="${#strings.isEmpty(alteracao.valorNovo)} ? '—' : ${alteracao.valorNovo}"></span>
+                </div>
+            </div>
+
+            <div class="alert alert-warning mt-3 mb-0 py-2" th:if="${registro.justificativa != null}">
+                <i class="bi bi-chat-left-text me-1"></i>
+                <strong>Justificativa:</strong>
+                <span th:text="${registro.justificativa}"></span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

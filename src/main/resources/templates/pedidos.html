@@ -40,13 +40,15 @@
                         <th>Itens</th>
                         <th>Total</th>
                         <th>Registrado por</th>
+                        <th>Saída</th>
                         <th>Status</th>
+                        <th class="text-end pe-4" th:if="${podeRegistrar}">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- Lista vazia -->
                     <tr th:if="${#lists.isEmpty(pedidos)}">
-                        <td colspan="7" class="text-center text-muted py-5">
+                        <td colspan="9" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                             Nenhum pedido encontrado.
                         </td>
@@ -68,16 +70,47 @@
                             <span th:if="${pedido.valorTotal != null}"
                                   th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorTotal, 1, 'POINT', 2, 'COMMA')}"></span>
                             <span th:if="${pedido.valorTotal == null}">—</span>
+                            <small class="d-block text-muted"
+                                   th:if="${pedido.percentualDesconto != null and pedido.percentualDesconto.signum() > 0}"
+                                   th:text="'desconto de ' + ${pedido.percentualDesconto} + '%'"></small>
                         </td>
                         <td th:text="${pedido.registradoPor != null} ? ${pedido.registradoPor} : '—'"></td>
+                        <td>
+                            <span th:if="${pedido.saidaEm != null}"
+                                  th:text="${#temporals.format(pedido.saidaEm, 'dd/MM/yyyy HH:mm')} + ' por ' + ${pedido.saidaPor}"></span>
+                            <span th:if="${pedido.saidaEm == null}">—</span>
+                        </td>
                         <td>
                             <span class="badge"
                                   th:classappend="${pedido.status == 'FINALIZADO'} ? 'bg-success' :
                                                   (${pedido.status == 'CANCELADO'} ? 'bg-danger' :
                                                   (${pedido.status == 'EM_PREPARACAO'} ? 'bg-warning text-dark' :
-                                                  (${pedido.status == 'PRONTO'} ? 'bg-info text-dark' : 'bg-secondary')))"
+                                                  (${pedido.status == 'PRONTO'} ? 'bg-info text-dark' :
+                                                  (${pedido.status == 'SAIU_PARA_ENTREGA' or pedido.status == 'RETIRADO'} ? 'bg-primary' : 'bg-secondary'))))"
                                   th:text="${pedido.status}">
                             </span>
+                        </td>
+                        <td class="text-end pe-4" th:if="${podeRegistrar}">
+                            <form th:if="${proximosStatus[pedido.id] != null}"
+                                  th:action="@{/pedidos/{id}/avancar(id=${pedido.id})}"
+                                  method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-arrow-right-circle me-1"></i>
+                                    Avançar para <span th:text="${#strings.replace(proximosStatus[pedido.id], '_', ' ')}"></span>
+                                </button>
+                            </form>
+                            <th:block th:if="${podeGerenciar and abertos[pedido.id]}">
+                                <button type="button" class="btn btn-sm btn-outline-warning ms-1"
+                                        data-bs-toggle="modal" data-bs-target="#modalDesconto"
+                                        th:attr="data-pedido-id=${pedido.id}">
+                                    <i class="bi bi-percent me-1"></i>Desconto
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-1"
+                                        data-bs-toggle="modal" data-bs-target="#modalCancelar"
+                                        th:attr="data-pedido-id=${pedido.id}">
+                                    <i class="bi bi-x-circle me-1"></i>Cancelar
+                                </button>
+                            </th:block>
                         </td>
                     </tr>
                 </tbody>
@@ -86,6 +119,63 @@
         <div class="card-footer text-muted small" th:if="${!#lists.isEmpty(pedidos)}">
             Total: <strong th:text="${#lists.size(pedidos)}"></strong> pedido(s)
         </div>
+    </div>
+
+    <div th:if="${podeGerenciar}">
+        <div class="modal fade" id="modalCancelar" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form id="formCancelar" method="post" th:action="@{/pedidos/cancelar}" class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cancelar pedido</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="justificativa" class="form-label fw-medium">Justificativa</label>
+                        <textarea id="justificativa" name="justificativa" class="form-control" rows="3" required></textarea>
+                        <div class="form-text">Obrigatória. O pedido fica registrado como cancelado e não pode mais ser alterado.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Voltar</button>
+                        <button type="submit" class="btn btn-danger">Cancelar pedido</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="modal fade" id="modalDesconto" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form id="formDesconto" method="post" th:action="@{/pedidos/desconto}" class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Aplicar desconto</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="percentual" class="form-label fw-medium">Percentual de desconto</label>
+                        <div class="input-group">
+                            <input type="number" id="percentual" name="percentual" class="form-control"
+                                   min="0" max="20" step="0.01" required>
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <div class="form-text">Máximo de 20%. Um novo desconto substitui o anterior.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Voltar</button>
+                        <button type="submit" class="btn btn-warning">Aplicar desconto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function ligarModal(idModal, idForm, sufixoRota) {
+                document.getElementById(idModal).addEventListener('show.bs.modal', function (evento) {
+                    const idPedido = evento.relatedTarget.getAttribute('data-pedido-id');
+                    document.getElementById(idForm).action = '/pedidos/' + idPedido + sufixoRota;
+                });
+            }
+            ligarModal('modalCancelar', 'formCancelar', '/cancelar');
+            ligarModal('modalDesconto', 'formDesconto', '/desconto');
+        </script>
     </div>
 
 </div>
