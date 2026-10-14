@@ -29,28 +29,28 @@ public class DataInitializer {
                 System.out.println("Usuário admin criado!");
             }
 
-            if (repo.findByUsername("gerente01").isEmpty()) {
+            if (repo.findByUsername("gerencia").isEmpty()) {
 
                 Usuario gerente = new Usuario();
-                gerente.setUsername("gerente01");
+                gerente.setUsername("gerencia");
                 gerente.setPassword(encoder.encode("teste123"));
                 gerente.setPerfil(Perfil.GERENTE);
 
                 repo.save(gerente);
 
-                System.out.println("Usuário gerente01 criado!");
+                System.out.println("Usuário gerencia criado!");
             }
 
-            if (repo.findByUsername("atendente01").isEmpty()) {
+            if (repo.findByUsername("balcao").isEmpty()) {
 
                 Usuario atendente = new Usuario();
-                atendente.setUsername("atendente01");
+                atendente.setUsername("balcao");
                 atendente.setPassword(encoder.encode("teste123"));
                 atendente.setPerfil(Perfil.ATENDENTE);
 
                 repo.save(atendente);
 
-                System.out.println("Usuário atendente01 criado!");
+                System.out.println("Usuário balcao criado!");
             }
         };
     }

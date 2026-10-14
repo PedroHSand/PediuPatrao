@@ -47,14 +47,14 @@ public class ClienteService {
         if (cliente.getId() == null) {
             Cliente novo = clienteRepository.save(cliente);  // Cria um novo cliente
             auditoriaService.registrar(TipoOperacao.CRIACAO_CLIENTE, "Cliente", novo.getId(),
-                    compararCampos(new Cliente(), novo), null);
+                    levantarDiferencas(new Cliente(), novo), null);
             return novo;
         } // Se já tem ID (cliente existente), atualiza
         else {
             // Verifica se o cliente existe antes de atualizar
-            Optional<Cliente> antigo = clienteRepository.findById(cliente.getId());
-            if (antigo.isPresent()) {
-                List<AlteracaoCampo> alteracoes = compararCampos(antigo.get(), cliente);
+            Optional<Cliente> versaoAnterior = clienteRepository.findById(cliente.getId());
+            if (versaoAnterior.isPresent()) {
+                List<AlteracaoCampo> alteracoes = levantarDiferencas(versaoAnterior.get(), cliente);
                 Cliente salvo = clienteRepository.save(cliente);  // Atualiza o cliente existente
 
                 if (!alteracoes.isEmpty()) {
@@ -67,25 +67,24 @@ public class ClienteService {
         }
     }
 
-    private List<AlteracaoCampo> compararCampos(Cliente antes, Cliente depois) {
+    private List<AlteracaoCampo> levantarDiferencas(Cliente antes, Cliente depois) {
         List<AlteracaoCampo> alteracoes = new ArrayList<>();
 
-        adicionarSeMudou(alteracoes, "nome", antes.getNome(), depois.getNome());
-        adicionarSeMudou(alteracoes, "telefone", antes.getTelefone(), depois.getTelefone());
-        adicionarSeMudou(alteracoes, "cep", antes.getCep(), depois.getCep());
-        adicionarSeMudou(alteracoes, "logradouro", antes.getLogradouro(), depois.getLogradouro());
-        adicionarSeMudou(alteracoes, "numero", antes.getNumero(), depois.getNumero());
-        adicionarSeMudou(alteracoes, "complemento", antes.getComplemento(), depois.getComplemento());
-        adicionarSeMudou(alteracoes, "bairro", antes.getBairro(), depois.getBairro());
-        adicionarSeMudou(alteracoes, "cidade", antes.getCidade(), depois.getCidade());
-        adicionarSeMudou(alteracoes, "estado", antes.getEstado(), depois.getEstado());
-        adicionarSeMudou(alteracoes, "endereco", antes.getEndereco(), depois.getEndereco());
+        anotarSeDiferente(alteracoes, "nome", antes.getNome(), depois.getNome());
+        anotarSeDiferente(alteracoes, "telefone", antes.getTelefone(), depois.getTelefone());
+        anotarSeDiferente(alteracoes, "cep", antes.getCep(), depois.getCep());
+        anotarSeDiferente(alteracoes, "logradouro", antes.getLogradouro(), depois.getLogradouro());
+        anotarSeDiferente(alteracoes, "numero", antes.getNumero(), depois.getNumero());
+        anotarSeDiferente(alteracoes, "complemento", antes.getComplemento(), depois.getComplemento());
+        anotarSeDiferente(alteracoes, "bairro", antes.getBairro(), depois.getBairro());
+        anotarSeDiferente(alteracoes, "cidade", antes.getCidade(), depois.getCidade());
+        anotarSeDiferente(alteracoes, "estado", antes.getEstado(), depois.getEstado());
+        anotarSeDiferente(alteracoes, "endereco", antes.getEndereco(), depois.getEndereco());
 
         return alteracoes;
     }
 
-    // null e texto vazio contam como iguais, porque o formulário manda "" onde o banco tem null
-    private void adicionarSeMudou(List<AlteracaoCampo> alteracoes, String campo, String valorAntes, String valorDepois) {
+    private void anotarSeDiferente(List<AlteracaoCampo> alteracoes, String campo, String valorAntes, String valorDepois) {
         String antes = Objects.toString(valorAntes, "");
         String depois = Objects.toString(valorDepois, "");
 

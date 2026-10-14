@@ -11,6 +11,9 @@
         <h2 class="fw-bold mb-0">
             <i class="bi bi-bag me-2 text-primary"></i>Pedidos
         </h2>
+        <a href="/pedidos/novo" class="btn btn-primary" th:if="${podeRegistrar}">
+            <i class="bi bi-plus-lg me-1"></i> Novo Pedido
+        </a>
     </div>
 
     <!-- Mensagens de feedback -->
@@ -31,34 +34,48 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th class="ps-4">ID</th>
-                        <th>Cliente ID</th>
-                        <th>Tipo de Pizza</th>
-                        <th>Sabor</th>
-                        <th>Quantidade</th>
+                        <th class="ps-4">Entrada</th>
+                        <th>Cliente</th>
+                        <th>Atendimento</th>
+                        <th>Itens</th>
+                        <th>Total</th>
+                        <th>Registrado por</th>
                         <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- Lista vazia -->
                     <tr th:if="${#lists.isEmpty(pedidos)}">
-                        <td colspan="6" class="text-center text-muted py-5">
+                        <td colspan="7" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                             Nenhum pedido encontrado.
                         </td>
                     </tr>
                     <!-- Linhas -->
                     <tr th:each="pedido : ${pedidos}">
-                        <td class="ps-4 text-muted" th:text="${pedido.id}"></td>
-                        <td th:text="${pedido.clienteId}"></td>
-                        <td th:text="${pedido.tipoPizza}"></td>
-                        <td th:text="${pedido.sabor}"></td>
-                        <td th:text="${pedido.quantidade}"></td>
+                        <td class="ps-4 text-muted">
+                            <span th:if="${pedido.entradaEm != null}"
+                                  th:text="${#temporals.format(pedido.entradaEm, 'dd/MM/yyyy HH:mm')}"></span>
+                            <span th:if="${pedido.entradaEm == null}">—</span>
+                        </td>
+                        <td th:text="${nomesClientes[pedido.clienteId] ?: pedido.clienteId}"></td>
+                        <td th:text="${pedido.tipoAtendimento != null} ? ${pedido.tipoAtendimento} : '—'"></td>
+                        <td>
+                            <div th:each="item : ${pedido.itens}"
+                                 th:text="${item.quantidade} + 'x ' + ${item.nomeProduto}"></div>
+                        </td>
+                        <td>
+                            <span th:if="${pedido.valorTotal != null}"
+                                  th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorTotal, 1, 'POINT', 2, 'COMMA')}"></span>
+                            <span th:if="${pedido.valorTotal == null}">—</span>
+                        </td>
+                        <td th:text="${pedido.registradoPor != null} ? ${pedido.registradoPor} : '—'"></td>
                         <td>
                             <span class="badge"
-                                  th:classappend="${pedido.status == 'ENTREGUE'} ? 'bg-success' :
+                                  th:classappend="${pedido.status == 'FINALIZADO'} ? 'bg-success' :
                                                   (${pedido.status == 'CANCELADO'} ? 'bg-danger' :
-                                                  (${pedido.status == 'EM_PREPARO'} ? 'bg-warning text-dark' : 'bg-secondary'))"
+                                                  (${pedido.status == 'EM_PREPARACAO'} ? 'bg-warning text-dark' :
+                                                  (${pedido.status == 'PRONTO'} ? 'bg-info text-dark' : 'bg-secondary')))"
                                   th:text="${pedido.status}">
                             </span>
                         </td>

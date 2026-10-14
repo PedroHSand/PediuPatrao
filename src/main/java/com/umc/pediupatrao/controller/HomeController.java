@@ -2,6 +2,7 @@ package com.umc.pediupatrao.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.umc.pediupatrao.dto.DadosNovoPedido;
 import com.umc.pediupatrao.entity.Cliente;
 import com.umc.pediupatrao.entity.Pedido;
 import com.umc.pediupatrao.entity.Produto;
@@ -11,8 +12,11 @@ import com.umc.pediupatrao.service.PedidoService;
 import com.umc.pediupatrao.service.ProdutoService;
 import com.umc.pediupatrao.service.UsuarioService;
 import java.security.Principal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -126,12 +130,50 @@ public class HomeController {
     // PEDIDOS
     // ========================
     @GetMapping("/pedidos")
-    public String pedidos(Model model) {
+    public String pedidos(Model model, Authentication sessao) {
         List<Pedido> pedidos = pedidoService.listarPedidos();
+
+        Map<String, String> nomesClientes = new HashMap<>();
+        for (Cliente cliente : clienteService.listarClientes()) {
+            nomesClientes.put(cliente.getId(), cliente.getNome());
+        }
+
+        boolean podeRegistrar = sessao.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_GERENTE") || a.getAuthority().equals("ROLE_ATENDENTE"));
+
         model.addAttribute("pedidos", pedidos);
+        model.addAttribute("nomesClientes", nomesClientes);
+        model.addAttribute("podeRegistrar", podeRegistrar);
         model.addAttribute("content", "pedidos :: content");
         log.info("Carregando fragmento: pedidos :: content");
         return "layout";
+    }
+
+    @GetMapping("/pedidos/novo")
+    public String novoPedidoForm(Model model) {
+        DadosNovoPedido dados = new DadosNovoPedido();
+        List<Produto> produtosAtivos = produtoService.listarProdutos().stream()
+                .filter(p -> Boolean.TRUE.equals(p.getAtivo()))
+                .toList();
+
+        model.addAttribute("dados", dados);
+        model.addAttribute("clientes", clienteService.listarClientes());
+        model.addAttribute("produtos", produtosAtivos);
+        model.addAttribute("content", "pedidos/novo :: content");
+        return "layout";
+    }
+
+    @PostMapping("/pedidos/salvar")
+    public String salvarPedido(@ModelAttribute("dados") DadosNovoPedido dados,
+            RedirectAttributes redirectAttributes) {
+        try {
+            pedidoService.criarPedido(dados);
+            redirectAttributes.addFlashAttribute("sucesso", "Pedido registrado com sucesso!");
+            return "redirect:/pedidos";
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("erro", e.getMessage());
+            return "redirect:/pedidos/novo";
+        }
     }
 
     // ========================

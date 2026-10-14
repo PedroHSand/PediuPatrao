@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Novo Pedido</title>
+</head>
+<body>
+
+<div th:fragment="content">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/pedidos" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <h2 class="fw-bold mb-0">Novo Pedido</h2>
+    </div>
+
+    <div class="alert alert-danger alert-dismissible fade show" th:if="${erro}" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span th:text="${erro}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="card shadow-sm" style="max-width: 760px;">
+        <div class="card-body p-4">
+
+            <form th:action="@{/pedidos/salvar}" th:object="${dados}" method="post">
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-7">
+                        <label for="clienteId" class="form-label fw-medium">Cliente</label>
+                        <select id="clienteId" class="form-select" th:field="*{clienteId}" required>
+                            <option value="" disabled selected>Selecione o cliente</option>
+                            <option th:each="cliente : ${clientes}"
+                                    th:value="${cliente.id}"
+                                    th:text="${cliente.nome}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="tipoAtendimento" class="form-label fw-medium">Atendimento</label>
+                        <select id="tipoAtendimento" class="form-select" th:field="*{tipoAtendimento}" required>
+                            <option value="" disabled selected>Selecione</option>
+                            <option value="ENTREGA">Entrega</option>
+                            <option value="RETIRADA">Retirada no balcão</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h5 class="fw-bold mb-3">Itens do pedido</h5>
+                <div id="lista-itens"></div>
+
+                <button type="button" id="btn-add-item" class="btn btn-outline-primary btn-sm mb-4">
+                    <i class="bi bi-plus-lg me-1"></i>Adicionar item
+                </button>
+
+                <p class="text-muted small">O valor total é calculado pelo sistema com os preços atuais dos produtos.</p>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Registrar pedido
+                    </button>
+                    <a href="/pedidos" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <template id="modelo-item">
+        <div class="col-md-8">
+            <select name="itens[@@INDICE@@].produtoId" class="form-select">
+                <option value="">Selecione o produto</option>
+                <option th:each="produto : ${produtos}"
+                        th:value="${produto.id}"
+                        th:text="${produto.nome} + ' — R$ ' + ${#numbers.formatDecimal(produto.preco, 1, 'POINT', 2, 'COMMA')}"></option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <input type="number" name="itens[@@INDICE@@].quantidade" class="form-control" min="1" value="1">
+        </div>
+        <div class="col-md-1">
+            <button type="button" class="btn btn-outline-danger btn-remover-item">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </template>
+
+    <script>
+        const listaItens = document.getElementById('lista-itens');
+        const modeloItem = document.getElementById('modelo-item').innerHTML;
+        let proximoIndice = 0;
+
+        function adicionarItem() {
+            const linha = document.createElement('div');
+            linha.className = 'row g-2 mb-2';
+            linha.innerHTML = modeloItem.replaceAll('@@INDICE@@', proximoIndice++);
+            linha.querySelector('.btn-remover-item').addEventListener('click', () => linha.remove());
+            listaItens.appendChild(linha);
+        }
+
+        document.getElementById('btn-add-item').addEventListener('click', adicionarItem);
+        adicionarItem();
+    </script>
+
+</div>
+
+</body>
+</html>
