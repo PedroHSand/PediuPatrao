@@ -2,7 +2,7 @@ package com.umc.pediupatrao.entity;
 
 import java.math.BigDecimal;
 
-public class ItemPedido {
+public class ItemDoPedido {
 
     private String produtoId;
     private String nomeProduto;

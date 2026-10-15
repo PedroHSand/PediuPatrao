@@ -1,12 +1,7 @@
-package com.umc.pediupatrao.service;
+package com.umc.pediupatrao.auditoria;
 
-import com.umc.pediupatrao.dto.LinhaAuditoria;
-import com.umc.pediupatrao.entity.AlteracaoCampo;
 import com.umc.pediupatrao.entity.Perfil;
-import com.umc.pediupatrao.entity.RegistroAuditoria;
 import com.umc.pediupatrao.entity.StatusPedido;
-import com.umc.pediupatrao.entity.TipoOperacao;
-import com.umc.pediupatrao.repository.AuditoriaRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -52,27 +47,27 @@ public class AuditoriaService {
         this.auditoriaRepository = auditoriaRepository;
     }
 
-    public void registrar(TipoOperacao operacao, String entidade, String entidadeId,
-            List<AlteracaoCampo> alteracoes, String justificativa) {
+    public void registrar(AcaoAuditada operacao, String entidade, String entidadeId,
+            List<CampoModificado> alteracoes, String justificativa) {
         Authentication sessao = SecurityContextHolder.getContext().getAuthentication();
 
         String papel = sessao.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
 
-        List<AlteracaoCampo> diferencasLiberadas = alteracoes.stream()
+        List<CampoModificado> diferencasLiberadas = alteracoes.stream()
                 .filter(alteracao -> !CAMPOS_SIGILOSOS.contains(alteracao.getCampo().toLowerCase()))
                 .toList();
 
-        RegistroAuditoria registro = new RegistroAuditoria(sessao.getName(), Perfil.valueOf(papel),
+        EventoAuditoria registro = new EventoAuditoria(sessao.getName(), Perfil.valueOf(papel),
                 LocalDateTime.now(), operacao, entidade, entidadeId, diferencasLiberadas, justificativa);
 
         auditoriaRepository.save(registro);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
-    public List<LinhaAuditoria> consultar(String usuario, TipoOperacao operacao, String entidade) {
-        List<LinhaAuditoria> linhas = new ArrayList<>();
+    public List<ResumoAuditoria> consultar(String usuario, AcaoAuditada operacao, String entidade) {
+        List<ResumoAuditoria> linhas = new ArrayList<>();
 
-        for (RegistroAuditoria registro : auditoriaRepository.findAllByOrderByDataHoraDesc()) {
+        for (EventoAuditoria registro : auditoriaRepository.findAllByOrderByDataHoraDesc()) {
             if (usuario != null && !usuario.isBlank() && !registro.getUsuario().equalsIgnoreCase(usuario.trim())) {
                 continue;
             }
@@ -83,23 +78,23 @@ public class AuditoriaService {
                 continue;
             }
 
-            List<AlteracaoCampo> alteracoesVisiveis = new ArrayList<>();
-            for (AlteracaoCampo alteracao : registro.getAlteracoes()) {
+            List<CampoModificado> alteracoesVisiveis = new ArrayList<>();
+            for (CampoModificado alteracao : registro.getAlteracoes()) {
                 alteracoesVisiveis.add(humanizar(ocultarSeSensivel(alteracao)));
             }
 
-            linhas.add(new LinhaAuditoria(registro.getId(), registro.getUsuario(), registro.getPerfil(),
+            linhas.add(new ResumoAuditoria(registro.getId(), registro.getUsuario(), registro.getPerfil(),
                     registro.getDataHora(), registro.getOperacao(), registro.getEntidade(),
                     registro.getEntidadeId(), alteracoesVisiveis, registro.getJustificativa()));
         }
         return linhas;
     }
 
-    private AlteracaoCampo ocultarSeSensivel(AlteracaoCampo alteracao) {
+    private CampoModificado ocultarSeSensivel(CampoModificado alteracao) {
         if (!CAMPOS_MASCARADOS.contains(alteracao.getCampo().toLowerCase())) {
             return alteracao;
         }
-        return new AlteracaoCampo(alteracao.getCampo(), esconder(alteracao.getValorAnterior()),
+        return new CampoModificado(alteracao.getCampo(), esconder(alteracao.getValorAnterior()),
                 esconder(alteracao.getValorNovo()));
     }
 
@@ -111,9 +106,9 @@ public class AuditoriaService {
         return "*".repeat(valor.length() - visiveis) + valor.substring(valor.length() - visiveis);
     }
 
-    private AlteracaoCampo humanizar(AlteracaoCampo alteracao) {
+    private CampoModificado humanizar(CampoModificado alteracao) {
         String campo = alteracao.getCampo();
-        return new AlteracaoCampo(ROTULOS.getOrDefault(campo, campo),
+        return new CampoModificado(ROTULOS.getOrDefault(campo, campo),
                 formatarValor(campo, alteracao.getValorAnterior()),
                 formatarValor(campo, alteracao.getValorNovo()));
     }

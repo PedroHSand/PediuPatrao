@@ -2,13 +2,13 @@ package com.umc.pediupatrao.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.umc.pediupatrao.dto.DadosNovoPedido;
+import com.umc.pediupatrao.dto.NovoPedidoForm;
 import com.umc.pediupatrao.entity.Cliente;
 import com.umc.pediupatrao.entity.Pedido;
 import com.umc.pediupatrao.entity.Produto;
 import com.umc.pediupatrao.entity.Usuario;
-import com.umc.pediupatrao.entity.TipoOperacao;
-import com.umc.pediupatrao.service.AuditoriaService;
+import com.umc.pediupatrao.auditoria.AcaoAuditada;
+import com.umc.pediupatrao.auditoria.AuditoriaService;
 import com.umc.pediupatrao.service.ClienteService;
 import com.umc.pediupatrao.service.PedidoService;
 import com.umc.pediupatrao.service.ProdutoService;
@@ -209,7 +209,7 @@ public class HomeController {
 
     @GetMapping("/pedidos/novo")
     public String novoPedidoForm(Model model) {
-        DadosNovoPedido dados = new DadosNovoPedido();
+        NovoPedidoForm dados = new NovoPedidoForm();
         List<Produto> produtosAtivos = produtoService.listarProdutos().stream()
                 .filter(p -> Boolean.TRUE.equals(p.getAtivo()))
                 .toList();
@@ -222,7 +222,7 @@ public class HomeController {
     }
 
     @PostMapping("/pedidos/salvar")
-    public String salvarPedido(@ModelAttribute("dados") DadosNovoPedido dados,
+    public String salvarPedido(@ModelAttribute("dados") NovoPedidoForm dados,
             RedirectAttributes redirectAttributes) {
         try {
             pedidoService.criarPedido(dados);
@@ -239,10 +239,10 @@ public class HomeController {
     // ========================
     @GetMapping("/auditoria")
     public String auditoria(@RequestParam(required = false) String usuario,
-            @RequestParam(required = false) TipoOperacao operacao,
+            @RequestParam(required = false) AcaoAuditada operacao,
             @RequestParam(required = false) String entidade, Model model) {
         model.addAttribute("registros", auditoriaService.consultar(usuario, operacao, entidade));
-        model.addAttribute("operacoes", TipoOperacao.values());
+        model.addAttribute("operacoes", AcaoAuditada.values());
         model.addAttribute("filtroUsuario", usuario);
         model.addAttribute("filtroOperacao", operacao);
         model.addAttribute("filtroEntidade", entidade);

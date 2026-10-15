@@ -19,14 +19,14 @@ public enum StatusPedido {
         return descricao;
     }
 
-    public StatusPedido seguinte(TipoAtendimento tipo) {
+    public StatusPedido seguinte(ModoAtendimento tipo) {
         switch (this) {
             case RECEBIDO:
                 return EM_PREPARACAO;
             case EM_PREPARACAO:
                 return PRONTO;
             case PRONTO:
-                return tipo == TipoAtendimento.ENTREGA ? SAIU_PARA_ENTREGA : RETIRADO;
+                return tipo == ModoAtendimento.ENTREGA ? SAIU_PARA_ENTREGA : RETIRADO;
             case SAIU_PARA_ENTREGA:
             case RETIRADO:
                 return FINALIZADO;

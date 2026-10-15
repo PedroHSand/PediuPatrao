@@ -1,14 +1,15 @@
 package com.umc.pediupatrao.service;
 
-import com.umc.pediupatrao.dto.DadosItemPedido;
-import com.umc.pediupatrao.dto.DadosNovoPedido;
-import com.umc.pediupatrao.entity.AlteracaoCampo;
-import com.umc.pediupatrao.entity.ItemPedido;
+import com.umc.pediupatrao.auditoria.AuditoriaService;
+import com.umc.pediupatrao.dto.NovoItemForm;
+import com.umc.pediupatrao.dto.NovoPedidoForm;
+import com.umc.pediupatrao.auditoria.CampoModificado;
+import com.umc.pediupatrao.entity.ItemDoPedido;
 import com.umc.pediupatrao.entity.Pedido;
 import com.umc.pediupatrao.entity.Produto;
 import com.umc.pediupatrao.entity.StatusPedido;
-import com.umc.pediupatrao.entity.TipoOperacao;
-import com.umc.pediupatrao.exception.RegraDeNegocioException;
+import com.umc.pediupatrao.auditoria.AcaoAuditada;
+import com.umc.pediupatrao.exception.NegocioException;
 import com.umc.pediupatrao.repository.PedidoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,7 +40,7 @@ public class PedidoService {
     private AuditoriaService auditoriaService;
 
     @PreAuthorize("hasAnyRole('GERENTE', 'ATENDENTE')")
-    public Pedido criarPedido(DadosNovoPedido dados) {
+    public Pedido criarPedido(NovoPedidoForm dados) {
         if (dados.getClienteId() == null || clienteService.buscarPorId(dados.getClienteId()).isEmpty()) {
             throw new IllegalStateException("Escolha um cliente válido para o pedido.");
         }
@@ -47,8 +48,8 @@ public class PedidoService {
             throw new IllegalStateException("Informe se o pedido é para entrega ou retirada.");
         }
 
-        List<ItemPedido> itens = new ArrayList<>();
-        for (DadosItemPedido dadosItem : dados.getItens()) {
+        List<ItemDoPedido> itens = new ArrayList<>();
+        for (NovoItemForm dadosItem : dados.getItens()) {
             if (dadosItem == null || dadosItem.getProdutoId() == null || dadosItem.getProdutoId().isBlank()) {
                 continue;
             }
@@ -70,17 +71,17 @@ public class PedidoService {
 
         Pedido gravado = pedidoRepository.save(pedido);
 
-        List<AlteracaoCampo> resumo = List.of(
-                new AlteracaoCampo("clienteId", "", gravado.getClienteId()),
-                new AlteracaoCampo("tipoAtendimento", "", gravado.getTipoAtendimento().name()),
-                new AlteracaoCampo("itens", "", resumirItens(itens)),
-                new AlteracaoCampo("valorTotal", "", gravado.getValorTotal().toPlainString()));
-        auditoriaService.registrar(TipoOperacao.CRIACAO_PEDIDO, "Pedido", gravado.getId(), resumo, null);
+        List<CampoModificado> resumo = List.of(
+                new CampoModificado("clienteId", "", gravado.getClienteId()),
+                new CampoModificado("tipoAtendimento", "", gravado.getTipoAtendimento().name()),
+                new CampoModificado("itens", "", resumirItens(itens)),
+                new CampoModificado("valorTotal", "", gravado.getValorTotal().toPlainString()));
+        auditoriaService.registrar(AcaoAuditada.CRIACAO_PEDIDO, "Pedido", gravado.getId(), resumo, null);
 
         return gravado;
     }
 
-    private ItemPedido montarItem(DadosItemPedido dadosItem) {
+    private ItemDoPedido montarItem(NovoItemForm dadosItem) {
         if (dadosItem.getQuantidade() < 1) {
             throw new IllegalStateException("A quantidade de cada item deve ser de pelo menos 1.");
         }
@@ -91,7 +92,7 @@ public class PedidoService {
             throw new IllegalStateException("O produto " + produto.getNome() + " está inativo.");
         }
 
-        ItemPedido item = new ItemPedido();
+        ItemDoPedido item = new ItemDoPedido();
         item.setProdutoId(produto.getId());
         item.setNomeProduto(produto.getNome());
         item.setQuantidade(dadosItem.getQuantidade());
@@ -99,16 +100,16 @@ public class PedidoService {
         return item;
     }
 
-    private BigDecimal calcularTotal(List<ItemPedido> itens, BigDecimal percentualDesconto) {
+    private BigDecimal calcularTotal(List<ItemDoPedido> itens, BigDecimal percentualDesconto) {
         BigDecimal soma = BigDecimal.ZERO;
-        for (ItemPedido item : itens) {
+        for (ItemDoPedido item : itens) {
             soma = soma.add(item.getSubtotal());
         }
         BigDecimal desconto = soma.multiply(percentualDesconto).divide(BigDecimal.valueOf(100));
         return soma.subtract(desconto).setScale(2, RoundingMode.HALF_UP);
     }
 
-    private String resumirItens(List<ItemPedido> itens) {
+    private String resumirItens(List<ItemDoPedido> itens) {
         return itens.stream()
                 .map(item -> item.getQuantidade() + "x " + item.getNomeProduto())
                 .collect(Collectors.joining(", "));
@@ -121,52 +122,52 @@ public class PedidoService {
     @PreAuthorize("hasAnyRole('GERENTE', 'ATENDENTE')")
     public Pedido atualizarStatus(String id, String novoStatus) {
         Pedido pedido = pedidoRepository.findById(id)
-                .orElseThrow(() -> new RegraDeNegocioException("Pedido não encontrado."));
+                .orElseThrow(() -> new NegocioException("Pedido não encontrado."));
 
         StatusPedido atual = converterStatus(pedido.getStatus());
         StatusPedido desejado = converterStatus(novoStatus);
 
         if (atual == StatusPedido.CANCELADO) {
-            throw new RegraDeNegocioException("Pedido cancelado não pode mais ser alterado.");
+            throw new NegocioException("Pedido cancelado não pode mais ser alterado.");
         }
         if (atual == StatusPedido.FINALIZADO) {
-            throw new RegraDeNegocioException("Pedido finalizado não pode mais ser alterado.");
+            throw new NegocioException("Pedido finalizado não pode mais ser alterado.");
         }
         if (desejado == StatusPedido.CANCELADO) {
-            throw new RegraDeNegocioException("O cancelamento é feito pela operação própria de cancelar pedido.");
+            throw new NegocioException("O cancelamento é feito pela operação própria de cancelar pedido.");
         }
         if (atual == StatusPedido.PRONTO && pedido.getTipoAtendimento() == null) {
-            throw new RegraDeNegocioException("Pedido sem tipo de atendimento (entrega ou retirada).");
+            throw new NegocioException("Pedido sem tipo de atendimento (entrega ou retirada).");
         }
         if (atual.seguinte(pedido.getTipoAtendimento()) != desejado) {
-            throw new RegraDeNegocioException("Transição inválida: de " + atual + " para " + desejado + ".");
+            throw new NegocioException("Transição inválida: de " + atual + " para " + desejado + ".");
         }
 
-        List<AlteracaoCampo> mudancas = new ArrayList<>();
-        mudancas.add(new AlteracaoCampo("status", atual.name(), desejado.name()));
+        List<CampoModificado> mudancas = new ArrayList<>();
+        mudancas.add(new CampoModificado("status", atual.name(), desejado.name()));
 
         pedido.setStatus(desejado.name());
         if (desejado.ehSaida()) {
             LocalDateTime momento = LocalDateTime.now();
             pedido.setSaidaEm(momento);
             pedido.setSaidaPor(usuarioLogado());
-            mudancas.add(new AlteracaoCampo("saidaPor", "", pedido.getSaidaPor()));
-            mudancas.add(new AlteracaoCampo("saidaEm", "", momento.toString()));
+            mudancas.add(new CampoModificado("saidaPor", "", pedido.getSaidaPor()));
+            mudancas.add(new CampoModificado("saidaEm", "", momento.toString()));
         }
 
         Pedido gravado = pedidoRepository.save(pedido);
-        auditoriaService.registrar(TipoOperacao.ALTERACAO_STATUS, "Pedido", gravado.getId(), mudancas, null);
+        auditoriaService.registrar(AcaoAuditada.ALTERACAO_STATUS, "Pedido", gravado.getId(), mudancas, null);
         return gravado;
     }
 
     @PreAuthorize("hasAnyRole('GERENTE', 'ATENDENTE')")
     public Pedido avancarStatus(String id) {
         Pedido pedido = pedidoRepository.findById(id)
-                .orElseThrow(() -> new RegraDeNegocioException("Pedido não encontrado."));
+                .orElseThrow(() -> new NegocioException("Pedido não encontrado."));
 
         String proximo = proximoStatus(pedido);
         if (proximo == null) {
-            throw new RegraDeNegocioException("Este pedido não pode mais avançar.");
+            throw new NegocioException("Este pedido não pode mais avançar.");
         }
         return atualizarStatus(id, proximo);
     }
@@ -177,21 +178,21 @@ public class PedidoService {
         StatusPedido atual = converterStatus(pedido.getStatus());
 
         if (atual == StatusPedido.CANCELADO) {
-            throw new RegraDeNegocioException("Este pedido já está cancelado.");
+            throw new NegocioException("Este pedido já está cancelado.");
         }
         if (!atual.antesDaSaida()) {
-            throw new RegraDeNegocioException("O pedido só pode ser cancelado antes da saída para entrega ou retirada.");
+            throw new NegocioException("O pedido só pode ser cancelado antes da saída para entrega ou retirada.");
         }
         if (justificativa == null || justificativa.isBlank()) {
-            throw new RegraDeNegocioException("Informe a justificativa do cancelamento.");
+            throw new NegocioException("Informe a justificativa do cancelamento.");
         }
 
         pedido.setStatus(StatusPedido.CANCELADO.name());
         Pedido gravado = pedidoRepository.save(pedido);
 
-        List<AlteracaoCampo> mudancas = List.of(
-                new AlteracaoCampo("status", atual.name(), StatusPedido.CANCELADO.name()));
-        auditoriaService.registrar(TipoOperacao.CANCELAMENTO, "Pedido", gravado.getId(), mudancas, justificativa.trim());
+        List<CampoModificado> mudancas = List.of(
+                new CampoModificado("status", atual.name(), StatusPedido.CANCELADO.name()));
+        auditoriaService.registrar(AcaoAuditada.CANCELAMENTO, "Pedido", gravado.getId(), mudancas, justificativa.trim());
         return gravado;
     }
 
@@ -201,16 +202,16 @@ public class PedidoService {
         StatusPedido atual = converterStatus(pedido.getStatus());
 
         if (percentual == null || percentual.signum() < 0 || percentual.compareTo(DESCONTO_MAXIMO) > 0) {
-            throw new RegraDeNegocioException("O desconto deve ficar entre 0% e 20%.");
+            throw new NegocioException("O desconto deve ficar entre 0% e 20%.");
         }
         if (atual == StatusPedido.CANCELADO) {
-            throw new RegraDeNegocioException("Pedido cancelado não aceita desconto.");
+            throw new NegocioException("Pedido cancelado não aceita desconto.");
         }
         if (!atual.antesDaSaida()) {
-            throw new RegraDeNegocioException("O desconto só pode ser aplicado antes da saída para entrega ou retirada.");
+            throw new NegocioException("O desconto só pode ser aplicado antes da saída para entrega ou retirada.");
         }
         if (pedido.getItens().isEmpty()) {
-            throw new RegraDeNegocioException("Pedido sem itens não aceita desconto.");
+            throw new NegocioException("Pedido sem itens não aceita desconto.");
         }
 
         BigDecimal percentualAnterior = pedido.getPercentualDesconto();
@@ -221,24 +222,24 @@ public class PedidoService {
         pedido.setValorTotal(calcularTotal(pedido.getItens(), novoPercentual));
         Pedido gravado = pedidoRepository.save(pedido);
 
-        List<AlteracaoCampo> mudancas = List.of(
-                new AlteracaoCampo("percentualDesconto", textoDe(percentualAnterior), novoPercentual.toPlainString()),
-                new AlteracaoCampo("valorTotal", textoDe(totalAnterior), gravado.getValorTotal().toPlainString()));
-        auditoriaService.registrar(TipoOperacao.DESCONTO, "Pedido", gravado.getId(), mudancas, null);
+        List<CampoModificado> mudancas = List.of(
+                new CampoModificado("percentualDesconto", textoDe(percentualAnterior), novoPercentual.toPlainString()),
+                new CampoModificado("valorTotal", textoDe(totalAnterior), gravado.getValorTotal().toPlainString()));
+        auditoriaService.registrar(AcaoAuditada.DESCONTO, "Pedido", gravado.getId(), mudancas, null);
         return gravado;
     }
 
     public boolean aindaNaoSaiu(Pedido pedido) {
         try {
             return converterStatus(pedido.getStatus()).antesDaSaida();
-        } catch (RegraDeNegocioException e) {
+        } catch (NegocioException e) {
             return false;
         }
     }
 
     private Pedido buscarPedido(String id) {
         return pedidoRepository.findById(id)
-                .orElseThrow(() -> new RegraDeNegocioException("Pedido não encontrado."));
+                .orElseThrow(() -> new NegocioException("Pedido não encontrado."));
     }
 
     private String textoDe(BigDecimal valor) {
@@ -253,7 +254,7 @@ public class PedidoService {
             }
             StatusPedido proximo = atual.seguinte(pedido.getTipoAtendimento());
             return proximo == null ? null : proximo.name();
-        } catch (RegraDeNegocioException e) {
+        } catch (NegocioException e) {
             return null;
         }
     }
@@ -262,7 +263,7 @@ public class PedidoService {
         try {
             return StatusPedido.valueOf(texto);
         } catch (IllegalArgumentException | NullPointerException e) {
-            throw new RegraDeNegocioException("Status inválido: " + texto);
+            throw new NegocioException("Status inválido: " + texto);
         }
     }
 

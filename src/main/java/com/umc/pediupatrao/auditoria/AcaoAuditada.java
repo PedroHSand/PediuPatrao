@@ -1,6 +1,6 @@
-package com.umc.pediupatrao.entity;
+package com.umc.pediupatrao.auditoria;
 
-public enum TipoOperacao {
+public enum AcaoAuditada {
     CRIACAO_CLIENTE("Criação de cliente"),
     ALTERACAO_CLIENTE("Alteração de cliente"),
     EXCLUSAO_CLIENTE("Exclusão de cliente"),
@@ -11,7 +11,7 @@ public enum TipoOperacao {
 
     private final String descricao;
 
-    TipoOperacao(String descricao) {
+    AcaoAuditada(String descricao) {
         this.descricao = descricao;
     }
 

@@ -1,12 +1,12 @@
-package com.umc.pediupatrao.entity;
+package com.umc.pediupatrao.auditoria;
 
-public class AlteracaoCampo {
+public class CampoModificado {
 
     private final String campo;
     private final String valorAnterior;
     private final String valorNovo;
 
-    public AlteracaoCampo(String campo, String valorAnterior, String valorNovo) {
+    public CampoModificado(String campo, String valorAnterior, String valorNovo) {
         this.campo = campo;
         this.valorAnterior = valorAnterior;
         this.valorNovo = valorNovo;

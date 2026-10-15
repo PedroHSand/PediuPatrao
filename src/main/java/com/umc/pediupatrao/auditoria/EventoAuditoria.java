@@ -1,4 +1,6 @@
-package com.umc.pediupatrao.entity;
+package com.umc.pediupatrao.auditoria;
+
+import com.umc.pediupatrao.entity.Perfil;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -7,21 +9,21 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Document(collection = "auditoria")
-public class RegistroAuditoria {
+public class EventoAuditoria {
 
     @Id
     private String id;
     private final String usuario;
     private final Perfil perfil;
     private final LocalDateTime dataHora;
-    private final TipoOperacao operacao;
+    private final AcaoAuditada operacao;
     private final String entidade;
     private final String entidadeId;
-    private final List<AlteracaoCampo> alteracoes;
+    private final List<CampoModificado> alteracoes;
     private final String justificativa;
 
-    public RegistroAuditoria(String usuario, Perfil perfil, LocalDateTime dataHora, TipoOperacao operacao,
-            String entidade, String entidadeId, List<AlteracaoCampo> alteracoes, String justificativa) {
+    public EventoAuditoria(String usuario, Perfil perfil, LocalDateTime dataHora, AcaoAuditada operacao,
+            String entidade, String entidadeId, List<CampoModificado> alteracoes, String justificativa) {
         this.usuario = usuario;
         this.perfil = perfil;
         this.dataHora = dataHora;
@@ -48,7 +50,7 @@ public class RegistroAuditoria {
         return dataHora;
     }
 
-    public TipoOperacao getOperacao() {
+    public AcaoAuditada getOperacao() {
         return operacao;
     }
 
@@ -60,7 +62,7 @@ public class RegistroAuditoria {
         return entidadeId;
     }
 
-    public List<AlteracaoCampo> getAlteracoes() {
+    public List<CampoModificado> getAlteracoes() {
         return alteracoes;
     }
 

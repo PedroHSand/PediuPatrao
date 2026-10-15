@@ -1,6 +1,6 @@
 package com.umc.pediupatrao.dto;
 
-public class DadosItemPedido {
+public class NovoItemForm {
 
     private String produtoId;
     private int quantidade = 1;

@@ -1,8 +1,5 @@
-package com.umc.pediupatrao.controller;
+package com.umc.pediupatrao.auditoria;
 
-import com.umc.pediupatrao.dto.LinhaAuditoria;
-import com.umc.pediupatrao.entity.TipoOperacao;
-import com.umc.pediupatrao.service.AuditoriaService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,8 +18,8 @@ public class AuditoriaController {
     }
 
     @GetMapping
-    public List<LinhaAuditoria> consultar(@RequestParam(required = false) String usuario,
-            @RequestParam(required = false) TipoOperacao operacao,
+    public List<ResumoAuditoria> consultar(@RequestParam(required = false) String usuario,
+            @RequestParam(required = false) AcaoAuditada operacao,
             @RequestParam(required = false) String entidade) {
         return auditoriaService.consultar(usuario, operacao, entidade);
     }

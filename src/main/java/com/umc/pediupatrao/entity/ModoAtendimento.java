@@ -1,6 +1,6 @@
 package com.umc.pediupatrao.entity;
 
-public enum TipoAtendimento {
+public enum ModoAtendimento {
     ENTREGA,
     RETIRADA
 }

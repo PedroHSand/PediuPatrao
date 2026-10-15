@@ -19,8 +19,8 @@ public class Pedido {
     private String status;
     private int quantidade;
     private String sabor;
-    private List<ItemPedido> itens = new ArrayList<>();
-    private TipoAtendimento tipoAtendimento;
+    private List<ItemDoPedido> itens = new ArrayList<>();
+    private ModoAtendimento tipoAtendimento;
     private BigDecimal percentualDesconto = BigDecimal.ZERO;
     private BigDecimal valorTotal;
     private String registradoPor;
@@ -76,19 +76,19 @@ public class Pedido {
         this.sabor = sabor;
     }
 
-    public List<ItemPedido> getItens() {
+    public List<ItemDoPedido> getItens() {
         return itens;
     }
 
-    public void setItens(List<ItemPedido> itens) {
+    public void setItens(List<ItemDoPedido> itens) {
         this.itens = itens;
     }
 
-    public TipoAtendimento getTipoAtendimento() {
+    public ModoAtendimento getTipoAtendimento() {
         return tipoAtendimento;
     }
 
-    public void setTipoAtendimento(TipoAtendimento tipoAtendimento) {
+    public void setTipoAtendimento(ModoAtendimento tipoAtendimento) {
         this.tipoAtendimento = tipoAtendimento;
     }
 

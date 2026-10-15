@@ -1,15 +1,15 @@
 package com.umc.pediupatrao.dto;
 
-import com.umc.pediupatrao.entity.TipoAtendimento;
+import com.umc.pediupatrao.entity.ModoAtendimento;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class DadosNovoPedido {
+public class NovoPedidoForm {
 
     private String clienteId;
-    private TipoAtendimento tipoAtendimento;
-    private List<DadosItemPedido> itens = new ArrayList<>();
+    private ModoAtendimento tipoAtendimento;
+    private List<NovoItemForm> itens = new ArrayList<>();
 
     public String getClienteId() {
         return clienteId;
@@ -19,19 +19,19 @@ public class DadosNovoPedido {
         this.clienteId = clienteId;
     }
 
-    public TipoAtendimento getTipoAtendimento() {
+    public ModoAtendimento getTipoAtendimento() {
         return tipoAtendimento;
     }
 
-    public void setTipoAtendimento(TipoAtendimento tipoAtendimento) {
+    public void setTipoAtendimento(ModoAtendimento tipoAtendimento) {
         this.tipoAtendimento = tipoAtendimento;
     }
 
-    public List<DadosItemPedido> getItens() {
+    public List<NovoItemForm> getItens() {
         return itens;
     }
 
-    public void setItens(List<DadosItemPedido> itens) {
+    public void setItens(List<NovoItemForm> itens) {
         this.itens = itens;
     }
 }

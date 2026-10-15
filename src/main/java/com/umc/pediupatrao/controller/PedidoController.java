@@ -1,6 +1,6 @@
 package com.umc.pediupatrao.controller;
 
-import com.umc.pediupatrao.dto.DadosNovoPedido;
+import com.umc.pediupatrao.dto.NovoPedidoForm;
 import com.umc.pediupatrao.entity.Pedido;
 import com.umc.pediupatrao.service.PedidoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,7 @@ public class PedidoController {
     private PedidoService pedidoService;
 
     @PostMapping
-    public ResponseEntity<?> criarPedido(@RequestBody DadosNovoPedido dados) {
+    public ResponseEntity<?> criarPedido(@RequestBody NovoPedidoForm dados) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(pedidoService.criarPedido(dados));
         } catch (IllegalStateException e) {

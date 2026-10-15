@@ -1,8 +1,9 @@
 package com.umc.pediupatrao.service;
 
-import com.umc.pediupatrao.entity.AlteracaoCampo;
+import com.umc.pediupatrao.auditoria.AuditoriaService;
+import com.umc.pediupatrao.auditoria.CampoModificado;
 import com.umc.pediupatrao.entity.Cliente;
-import com.umc.pediupatrao.entity.TipoOperacao;
+import com.umc.pediupatrao.auditoria.AcaoAuditada;
 import com.umc.pediupatrao.repository.ClienteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,8 +33,8 @@ public class ClienteService {
     public void excluir(String id) {
         clienteRepository.findById(id).ifPresent(cliente -> {
             clienteRepository.deleteById(id);
-            auditoriaService.registrar(TipoOperacao.EXCLUSAO_CLIENTE, "Cliente", id,
-                    List.of(new AlteracaoCampo("nome", cliente.getNome(), "")), null);
+            auditoriaService.registrar(AcaoAuditada.EXCLUSAO_CLIENTE, "Cliente", id,
+                    List.of(new CampoModificado("nome", cliente.getNome(), "")), null);
         });
     }
 
@@ -46,7 +47,7 @@ public class ClienteService {
         // Se o cliente não tem ID (novo cliente), salva como novo
         if (cliente.getId() == null) {
             Cliente novo = clienteRepository.save(cliente);  // Cria um novo cliente
-            auditoriaService.registrar(TipoOperacao.CRIACAO_CLIENTE, "Cliente", novo.getId(),
+            auditoriaService.registrar(AcaoAuditada.CRIACAO_CLIENTE, "Cliente", novo.getId(),
                     levantarDiferencas(new Cliente(), novo), null);
             return novo;
         } // Se já tem ID (cliente existente), atualiza
@@ -54,11 +55,11 @@ public class ClienteService {
             // Verifica se o cliente existe antes de atualizar
             Optional<Cliente> versaoAnterior = clienteRepository.findById(cliente.getId());
             if (versaoAnterior.isPresent()) {
-                List<AlteracaoCampo> alteracoes = levantarDiferencas(versaoAnterior.get(), cliente);
+                List<CampoModificado> alteracoes = levantarDiferencas(versaoAnterior.get(), cliente);
                 Cliente salvo = clienteRepository.save(cliente);  // Atualiza o cliente existente
 
                 if (!alteracoes.isEmpty()) {
-                    auditoriaService.registrar(TipoOperacao.ALTERACAO_CLIENTE, "Cliente", salvo.getId(), alteracoes, null);
+                    auditoriaService.registrar(AcaoAuditada.ALTERACAO_CLIENTE, "Cliente", salvo.getId(), alteracoes, null);
                 }
                 return salvo;
             } else {
@@ -67,8 +68,8 @@ public class ClienteService {
         }
     }
 
-    private List<AlteracaoCampo> levantarDiferencas(Cliente antes, Cliente depois) {
-        List<AlteracaoCampo> alteracoes = new ArrayList<>();
+    private List<CampoModificado> levantarDiferencas(Cliente antes, Cliente depois) {
+        List<CampoModificado> alteracoes = new ArrayList<>();
 
         anotarSeDiferente(alteracoes, "nome", antes.getNome(), depois.getNome());
         anotarSeDiferente(alteracoes, "telefone", antes.getTelefone(), depois.getTelefone());
@@ -84,12 +85,12 @@ public class ClienteService {
         return alteracoes;
     }
 
-    private void anotarSeDiferente(List<AlteracaoCampo> alteracoes, String campo, String valorAntes, String valorDepois) {
+    private void anotarSeDiferente(List<CampoModificado> alteracoes, String campo, String valorAntes, String valorDepois) {
         String antes = Objects.toString(valorAntes, "");
         String depois = Objects.toString(valorDepois, "");
 
         if (!antes.equals(depois)) {
-            alteracoes.add(new AlteracaoCampo(campo, antes, depois));
+            alteracoes.add(new CampoModificado(campo, antes, depois));
         }
     }
 

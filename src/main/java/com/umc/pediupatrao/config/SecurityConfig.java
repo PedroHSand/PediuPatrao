@@ -1,6 +1,10 @@
 package com.umc.pediupatrao.config;
 
 import com.umc.pediupatrao.service.UsuarioDetailsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -20,6 +24,8 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     private final UsuarioDetailsService usuarioDetailsService;
 
@@ -74,9 +80,20 @@ public class SecurityConfig {
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
-                );
+                )
+                .exceptionHandling(erros -> erros.accessDeniedHandler(registrarAcessoNegado()));
 
         return http.build();
+    }
+
+    @Bean
+    public AccessDeniedHandler registrarAcessoNegado() {
+        AccessDeniedHandlerImpl padrao = new AccessDeniedHandlerImpl();
+        return (request, response, excecao) -> {
+            String usuario = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "anonimo";
+            log.warn("Acesso negado: usuario={}, metodo={}, caminho={}", usuario, request.getMethod(), request.getRequestURI());
+            padrao.handle(request, response, excecao);
+        };
     }
 
     @Bean

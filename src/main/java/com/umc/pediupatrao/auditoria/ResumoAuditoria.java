@@ -1,26 +1,24 @@
-package com.umc.pediupatrao.dto;
+package com.umc.pediupatrao.auditoria;
 
-import com.umc.pediupatrao.entity.AlteracaoCampo;
 import com.umc.pediupatrao.entity.Perfil;
-import com.umc.pediupatrao.entity.TipoOperacao;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public class LinhaAuditoria {
+public class ResumoAuditoria {
 
     private final String id;
     private final String usuario;
     private final Perfil perfil;
     private final LocalDateTime dataHora;
-    private final TipoOperacao operacao;
+    private final AcaoAuditada operacao;
     private final String entidade;
     private final String entidadeId;
-    private final List<AlteracaoCampo> alteracoes;
+    private final List<CampoModificado> alteracoes;
     private final String justificativa;
 
-    public LinhaAuditoria(String id, String usuario, Perfil perfil, LocalDateTime dataHora, TipoOperacao operacao,
-            String entidade, String entidadeId, List<AlteracaoCampo> alteracoes, String justificativa) {
+    public ResumoAuditoria(String id, String usuario, Perfil perfil, LocalDateTime dataHora, AcaoAuditada operacao,
+            String entidade, String entidadeId, List<CampoModificado> alteracoes, String justificativa) {
         this.id = id;
         this.usuario = usuario;
         this.perfil = perfil;
@@ -48,7 +46,7 @@ public class LinhaAuditoria {
         return dataHora;
     }
 
-    public TipoOperacao getOperacao() {
+    public AcaoAuditada getOperacao() {
         return operacao;
     }
 
@@ -60,7 +58,7 @@ public class LinhaAuditoria {
         return entidadeId;
     }
 
-    public List<AlteracaoCampo> getAlteracoes() {
+    public List<CampoModificado> getAlteracoes() {
         return alteracoes;
     }
 
