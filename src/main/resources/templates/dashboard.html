@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+
+<div th:fragment="content">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard
+        </h2>
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <span class="text-muted small">
+                <i class="bi bi-clock me-1"></i>Atualizado às <span id="ultimaAtualizacao">--:--:--</span>
+            </span>
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="atualizacaoAutomatica" checked>
+                <label class="form-check-label small" for="atualizacaoAutomatica">Atualizar a cada 30s</label>
+            </div>
+            <button type="button" id="btnAtualizar" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <form id="formFiltros" class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-6 col-md-2">
+                    <label for="filtroPeriodo" class="form-label fw-medium">Período</label>
+                    <select id="filtroPeriodo" class="form-select">
+                        <option value="HOJE">Hoje</option>
+                        <option value="SEMANA">Esta semana</option>
+                        <option value="MES">Este mês</option>
+                        <option value="PERSONALIZADO">Personalizado</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="filtroAtendimento" class="form-label fw-medium">Atendimento</label>
+                    <select id="filtroAtendimento" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="ENTREGA">Entrega</option>
+                        <option value="RETIRADA">Retirada</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="filtroStatus" class="form-label fw-medium">Status</label>
+                    <select id="filtroStatus" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="RECEBIDO">Recebido</option>
+                        <option value="EM_PREPARACAO">Em preparação</option>
+                        <option value="PRONTO">Pronto</option>
+                        <option value="SAIU_PARA_ENTREGA">Saiu para entrega</option>
+                        <option value="RETIRADO">Retirado</option>
+                        <option value="FINALIZADO">Finalizado</option>
+                        <option value="CANCELADO">Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="filtroCategoria" class="form-label fw-medium">Categoria</label>
+                    <select id="filtroCategoria" class="form-select">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <button type="button" id="btnLimpar" class="btn btn-outline-secondary">Limpar</button>
+                </div>
+            </div>
+
+            <div id="boxPersonalizado" class="border rounded bg-light p-3 mt-3 d-none">
+                <div class="fw-semibold mb-2">
+                    <i class="bi bi-calendar-range me-1"></i>Período personalizado
+                </div>
+                <div class="row g-3 align-items-end">
+                    <div class="col-6 col-md-3">
+                        <label for="filtroInicio" class="form-label mb-1">De</label>
+                        <input type="date" id="filtroInicio" class="form-control">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label for="filtroFim" class="form-label mb-1">Até</label>
+                        <input type="date" id="filtroFim" class="form-control">
+                    </div>
+                    <div class="col-12 col-md-auto d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm atalho" data-dias="7">Últimos 7 dias</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm atalho" data-dias="30">Últimos 30 dias</button>
+                    </div>
+                </div>
+                <div class="text-muted small mt-2">Clique em Filtrar para aplicar. O período máximo é de 366 dias.</div>
+            </div>
+        </div>
+    </form>
+
+    <div id="alertaErro" class="alert alert-danger d-none" role="alert"></div>
+
+    <!-- Indicadores do filtro -->
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100 border-start border-primary border-4">
+                <div class="card-body">
+                    <div class="text-muted small">Faturamento</div>
+                    <div class="fs-5 fw-bold text-nowrap" id="kpiFaturamento">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100 border-start border-success border-4">
+                <div class="card-body">
+                    <div class="text-muted small">Pedidos</div>
+                    <div class="fs-5 fw-bold text-nowrap" id="kpiPedidos">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100 border-start border-info border-4">
+                <div class="card-body">
+                    <div class="text-muted small">Ticket médio</div>
+                    <div class="fs-5 fw-bold text-nowrap" id="kpiTicket">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100 border-start border-warning border-4">
+                <div class="card-body">
+                    <div class="text-muted small">Em preparo</div>
+                    <div class="fs-5 fw-bold text-nowrap" id="kpiPreparo">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100 border-start border-secondary border-4">
+                <div class="card-body">
+                    <div class="text-muted small">Já saíram</div>
+                    <div class="fs-5 fw-bold text-nowrap" id="kpiSairam">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100 border-start border-danger border-4">
+                <div class="card-body">
+                    <div class="text-muted small">Mais vendido</div>
+                    <div class="fs-6 fw-bold text-truncate" id="kpiMaisVendido" title="">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Totais fixos -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Vendas de hoje</div>
+                        <div class="fs-5 fw-bold" id="totalHojeValor">—</div>
+                    </div>
+                    <span class="badge bg-primary fs-6" id="totalHojePedidos">0</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Vendas da semana</div>
+                        <div class="fs-5 fw-bold" id="totalSemanaValor">—</div>
+                    </div>
+                    <span class="badge bg-primary fs-6" id="totalSemanaPedidos">0</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Vendas do mês</div>
+                        <div class="fs-5 fw-bold" id="totalMesValor">—</div>
+                    </div>
+                    <span class="badge bg-primary fs-6" id="totalMesPedidos">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold">Faturamento por dia</div>
+                <div class="card-body position-relative">
+                    <div style="height: 280px;"><canvas id="graficoDia"></canvas></div>
+                    <div class="sem-dados text-muted d-none" data-grafico="graficoDia">Sem vendas no período.</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold">Entrega x retirada</div>
+                <div class="card-body position-relative">
+                    <div style="height: 280px;"><canvas id="graficoAtendimento"></canvas></div>
+                    <div class="sem-dados text-muted d-none" data-grafico="graficoAtendimento">Sem vendas no período.</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold">Pedidos por hora do dia</div>
+                <div class="card-body position-relative">
+                    <div style="height: 280px;"><canvas id="graficoHora"></canvas></div>
+                    <div class="sem-dados text-muted d-none" data-grafico="graficoHora">Sem vendas no período.</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold">Vendas por categoria</div>
+                <div class="card-body position-relative">
+                    <div style="height: 280px;"><canvas id="graficoCategoria"></canvas></div>
+                    <div class="sem-dados text-muted d-none" data-grafico="graficoCategoria">Sem vendas no período.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Situação e ranking -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-5">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold">Situação dos pedidos</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0 align-middle">
+                        <tbody id="tabelaSituacao"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-7">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">Produtos mais vendidos</span>
+                    <select id="limiteRanking" class="form-select form-select-sm w-auto">
+                        <option value="5">Top 5</option>
+                        <option value="10">Top 10</option>
+                        <option value="20">Top 20</option>
+                    </select>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Produto</th>
+                                    <th>Categoria</th>
+                                    <th class="text-end">Qtde</th>
+                                    <th class="text-end">Faturamento</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaRanking"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .sem-dados {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, .85);
+        }
+        .carregando { opacity: .6; transition: opacity .2s; }
+    </style>
+
+    <script th:src="@{/plugins/chart.js/Chart.min.js}"></script>
+    <script th:inline="none">
+        (function () {
+            const API = '/api/dashboard';
+            const INTERVALO_MS = 30000;
+            const CORES = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1', '#20c997'];
+            const COR_STATUS = {
+                RECEBIDO: 'secondary', EM_PREPARACAO: 'warning', PRONTO: 'info',
+                SAIU_PARA_ENTREGA: 'primary', RETIRADO: 'primary', FINALIZADO: 'success', CANCELADO: 'danger'
+            };
+
+            const moeda = v => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(v);
+            const el = id => document.getElementById(id);
+
+            let carregando = false;
+            let timer = null;
+
+            // ---------- gráficos ----------
+            const opcoesBase = {responsive: true, maintainAspectRatio: false};
+
+            const graficoDia = new Chart(el('graficoDia'), {
+                type: 'line',
+                data: {labels: [], datasets: [{label: 'Faturamento', data: [], borderColor: CORES[0],
+                    backgroundColor: 'rgba(13, 110, 253, .1)', lineTension: 0.2}]},
+                options: Object.assign({}, opcoesBase, {
+                    legend: {display: false},
+                    scales: {yAxes: [{ticks: {beginAtZero: true, callback: v => moeda(v)}}]},
+                    tooltips: {callbacks: {label: item => moeda(item.yLabel)}}
+                })
+            });
+
+            const graficoHora = new Chart(el('graficoHora'), {
+                type: 'bar',
+                data: {labels: [], datasets: [{label: 'Pedidos', data: [], backgroundColor: CORES[1]}]},
+                options: Object.assign({}, opcoesBase, {
+                    legend: {display: false},
+                    scales: {yAxes: [{ticks: {beginAtZero: true, precision: 0}}]}
+                })
+            });
+
+            function criarRosca(id) {
+                return new Chart(el(id), {
+                    type: 'doughnut',
+                    data: {labels: [], datasets: [{data: [], backgroundColor: CORES}]},
+                    options: Object.assign({}, opcoesBase, {
+                        legend: {position: 'bottom'},
+                        tooltips: {callbacks: {label: (item, data) =>
+                            data.labels[item.index] + ': ' + moeda(data.datasets[0].data[item.index])}}
+                    })
+                });
+            }
+            const graficoCategoria = criarRosca('graficoCategoria');
+            const graficoAtendimento = criarRosca('graficoAtendimento');
+
+            function preencher(grafico, id, pontos, campo) {
+                grafico.data.labels = pontos.map(p => p.rotulo);
+                grafico.data.datasets[0].data = pontos.map(p => p[campo]);
+                grafico.update();
+                const vazio = pontos.every(p => p.pedidos === 0);
+                document.querySelector('.sem-dados[data-grafico="' + id + '"]').classList.toggle('d-none', !vazio);
+            }
+
+            // ---------- filtros ----------
+            function parametros() {
+                const q = new URLSearchParams();
+                const periodo = el('filtroPeriodo').value;
+                if (periodo === 'PERSONALIZADO') {
+                    q.set('inicio', el('filtroInicio').value);
+                    q.set('fim', el('filtroFim').value);
+                } else {
+                    q.set('periodo', periodo);
+                }
+                [['tipoAtendimento', 'filtroAtendimento'], ['status', 'filtroStatus'], ['categoria', 'filtroCategoria']]
+                    .forEach(([nome, id]) => { if (el(id).value) q.set(nome, el(id).value); });
+                return q;
+            }
+
+            async function buscar(caminho, extra) {
+                const q = parametros();
+                if (extra) Object.keys(extra).forEach(k => q.set(k, extra[k]));
+                const resposta = await fetch(API + caminho + '?' + q.toString(), {
+                    credentials: 'same-origin', headers: {'Accept': 'application/json'}
+                });
+                if (resposta.redirected || resposta.status === 401) {
+                    throw new Error('Sua sessão expirou. Entre novamente.');
+                }
+                if (resposta.status === 403) {
+                    throw new Error('Você não tem permissão para ver o dashboard.');
+                }
+                if (!resposta.ok) {
+                    const texto = await resposta.text();
+                    throw new Error(texto || 'Não foi possível carregar os dados (erro ' + resposta.status + ').');
+                }
+                return resposta.json();
+            }
+
+            // ---------- preenchimento da tela ----------
+            function mostrarResumo(r) {
+                el('kpiFaturamento').textContent = moeda(r.faturamento);
+                el('kpiPedidos').textContent = r.pedidos;
+                el('kpiTicket').textContent = moeda(r.ticketMedio);
+                el('kpiPreparo').textContent = r.emPreparo;
+                el('kpiSairam').textContent = r.jaSairam;
+                el('kpiMaisVendido').textContent = r.produtoMaisVendido || 'Sem vendas';
+                el('kpiMaisVendido').title = r.produtoMaisVendido || '';
+                [['Hoje', r.hoje], ['Semana', r.semana], ['Mes', r.mes]].forEach(([nome, total]) => {
+                    el('total' + nome + 'Valor').textContent = moeda(total.faturamento);
+                    el('total' + nome + 'Pedidos').textContent = total.pedidos + ' pedido(s)';
+                });
+            }
+
+            function mostrarSituacao(lista) {
+                const corpo = el('tabelaSituacao');
+                corpo.replaceChildren();
+                lista.forEach(item => {
+                    const linha = corpo.insertRow();
+                    const nome = linha.insertCell();
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-' + (COR_STATUS[item.status] || 'secondary');
+                    badge.textContent = item.descricao;
+                    nome.appendChild(badge);
+                    const qtd = linha.insertCell();
+                    qtd.className = 'text-end fw-semibold';
+                    qtd.textContent = item.quantidade;
+                });
+            }
+
+            function mostrarRanking(lista) {
+                const corpo = el('tabelaRanking');
+                corpo.replaceChildren();
+                if (lista.length === 0) {
+                    const celula = corpo.insertRow().insertCell();
+                    celula.colSpan = 5;
+                    celula.className = 'text-center text-muted py-4';
+                    celula.textContent = 'Nenhum produto vendido no período.';
+                    return;
+                }
+                lista.forEach((item, i) => {
+                    const linha = corpo.insertRow();
+                    linha.insertCell().textContent = i + 1;
+                    linha.insertCell().textContent = item.produto;
+                    linha.insertCell().textContent = item.categoria;
+                    const qtd = linha.insertCell();
+                    qtd.className = 'text-end';
+                    qtd.textContent = item.quantidade;
+                    const valor = linha.insertCell();
+                    valor.className = 'text-end';
+                    valor.textContent = moeda(item.faturamento);
+                });
+            }
+
+            function mostrarErro(mensagem) {
+                const alerta = el('alertaErro');
+                alerta.textContent = mensagem || '';
+                alerta.classList.toggle('d-none', !mensagem);
+            }
+
+            // Categorias vêm dos produtos cadastrados
+            async function carregarCategorias() {
+                try {
+                    const resposta = await fetch(API + '/categorias', {credentials: 'same-origin'});
+                    if (!resposta.ok) return;
+                    (await resposta.json()).forEach(categoria => {
+                        const opcao = document.createElement('option');
+                        opcao.value = categoria;
+                        opcao.textContent = categoria;
+                        el('filtroCategoria').appendChild(opcao);
+                    });
+                } catch (e) {
+                    // sem as categorias o filtro continua só com "Todas"
+                }
+            }
+
+            // ---------- atualização ----------
+            async function atualizar() {
+                if (carregando) return;
+                if (el('filtroPeriodo').value === 'PERSONALIZADO' && (!el('filtroInicio').value || !el('filtroFim').value)) {
+                    mostrarErro('Escolha as duas datas do período personalizado.');
+                    return;
+                }
+                carregando = true;
+                document.querySelector('main').classList.add('carregando');
+                try {
+                    const [resumo, dia, hora, categoria, atendimento, situacao, ranking] = await Promise.all([
+                        buscar('/resumo'),
+                        buscar('/vendas/por-dia'),
+                        buscar('/vendas/por-hora'),
+                        buscar('/vendas/por-categoria'),
+                        buscar('/vendas/por-atendimento'),
+                        buscar('/pedidos/situacao'),
+                        buscar('/produtos/mais-vendidos', {limite: el('limiteRanking').value})
+                    ]);
+                    mostrarResumo(resumo);
+                    preencher(graficoDia, 'graficoDia', dia.map(p => Object.assign({}, p, {rotulo: formatarDia(p.rotulo)})), 'faturamento');
+                    preencher(graficoHora, 'graficoHora', hora, 'pedidos');
+                    preencher(graficoCategoria, 'graficoCategoria', categoria, 'faturamento');
+                    preencher(graficoAtendimento, 'graficoAtendimento', atendimento, 'faturamento');
+                    mostrarSituacao(situacao);
+                    mostrarRanking(ranking);
+                    mostrarErro('');
+                    el('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
+                } catch (e) {
+                    mostrarErro(e.message || 'Erro ao carregar o dashboard.');
+                } finally {
+                    carregando = false;
+                    document.querySelector('main').classList.remove('carregando');
+                }
+            }
+
+            function formatarDia(iso) {
+                const [, mes, dia] = iso.split('-');
+                return dia + '/' + mes;
+            }
+
+            function agendar() {
+                clearInterval(timer);
+                if (el('atualizacaoAutomatica').checked) {
+                    timer = setInterval(() => { if (!document.hidden) atualizar(); }, INTERVALO_MS);
+                }
+            }
+
+            // ---------- eventos ----------
+            function iso(data) {
+                const mes = String(data.getMonth() + 1).padStart(2, '0');
+                const dia = String(data.getDate()).padStart(2, '0');
+                return data.getFullYear() + '-' + mes + '-' + dia;
+            }
+
+            function ultimosDias(dias) {
+                const fim = new Date();
+                const inicio = new Date();
+                inicio.setDate(fim.getDate() - (dias - 1));
+                el('filtroInicio').value = iso(inicio);
+                el('filtroFim').value = iso(fim);
+            }
+
+            el('filtroPeriodo').addEventListener('change', () => {
+                const personalizado = el('filtroPeriodo').value === 'PERSONALIZADO';
+                el('boxPersonalizado').classList.toggle('d-none', !personalizado);
+                if (personalizado && !el('filtroInicio').value) {
+                    ultimosDias(7);
+                }
+            });
+            document.querySelectorAll('.atalho').forEach(botao =>
+                botao.addEventListener('click', () => ultimosDias(Number(botao.dataset.dias))));
+            el('formFiltros').addEventListener('submit', e => { e.preventDefault(); atualizar(); });
+            el('btnLimpar').addEventListener('click', () => {
+                el('formFiltros').reset();
+                el('boxPersonalizado').classList.add('d-none');
+                atualizar();
+            });
+            el('btnAtualizar').addEventListener('click', atualizar);
+            el('limiteRanking').addEventListener('change', atualizar);
+            el('atualizacaoAutomatica').addEventListener('change', agendar);
+
+            carregarCategorias();
+            atualizar();
+            agendar();
+        })();
+    </script>
+
+</div>
+
+</body>
+</html>

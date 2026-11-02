@@ -58,6 +58,7 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/css/**", "/dist/**", "/plugins/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/usuarios/**", "/api/usuarios/**").hasRole("ADMIN")
                         .requestMatchers("/auditoria", "/auditoria/**", "/api/auditoria", "/api/auditoria/**").hasAnyRole("ADMIN", "GERENTE")
+                        .requestMatchers("/dashboard", "/api/dashboard/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").hasAnyRole("ADMIN", "GERENTE")
                         .requestMatchers("/clientes/novo", "/clientes/salvar", "/clientes/editar/**").hasRole("ATENDENTE")
                         .requestMatchers(HttpMethod.GET, "/clientes", "/api/clientes/**").hasAnyRole("GERENTE", "ATENDENTE")
                         .requestMatchers("/api/clientes/**").hasRole("ATENDENTE")

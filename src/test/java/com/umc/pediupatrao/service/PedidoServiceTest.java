@@ -23,6 +23,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -319,5 +320,44 @@ class PedidoServiceTest {
 
         devolverPedido(pedidoNoStatus(StatusPedido.CANCELADO, ModoAtendimento.ENTREGA));
         assertThrows(IllegalStateException.class, () -> pedidoService.aplicarDesconto("p1", new BigDecimal("5")));
+    }
+
+    // ---------- listagem ----------
+
+    private Pedido pedidoEntradaEm(String id, LocalDateTime entrada) {
+        Pedido pedido = new Pedido();
+        pedido.setId(id);
+        pedido.setEntradaEm(entrada);
+        return pedido;
+    }
+
+    @Test
+    void listagemVemDoMaisRecenteParaOMaisAntigoComSemDataNoFim() {
+        LocalDateTime agora = LocalDateTime.now();
+        when(pedidoRepository.findAll()).thenReturn(List.of(
+                pedidoEntradaEm("antigo", agora.minusDays(3)),
+                pedidoEntradaEm("semData", null),
+                pedidoEntradaEm("recente", agora),
+                pedidoEntradaEm("meio", agora.minusDays(1))));
+
+        List<String> ids = pedidoService.listarPedidos().stream().map(Pedido::getId).toList();
+
+        assertEquals(List.of("recente", "meio", "antigo", "semData"), ids);
+    }
+
+    @Test
+    void listagemDoDiaTrazSoPedidosDoDiaEscolhidoEmOrdemDecrescente() {
+        LocalDateTime agora = LocalDateTime.now();
+        when(pedidoRepository.findAll()).thenReturn(List.of(
+                pedidoEntradaEm("ontem", agora.minusDays(1)),
+                pedidoEntradaEm("hojeCedo", agora.toLocalDate().atStartOfDay().plusMinutes(1)),
+                pedidoEntradaEm("semData", null),
+                pedidoEntradaEm("hojeTarde", agora.toLocalDate().atStartOfDay().plusHours(12).plusMinutes(1))));
+
+        List<String> idsHoje = pedidoService.listarPedidosDoDia(agora.toLocalDate()).stream().map(Pedido::getId).toList();
+        List<String> idsOntem = pedidoService.listarPedidosDoDia(agora.toLocalDate().minusDays(1)).stream().map(Pedido::getId).toList();
+
+        assertEquals(List.of("hojeTarde", "hojeCedo"), idsHoje);
+        assertEquals(List.of("ontem"), idsOntem);
     }
 }
