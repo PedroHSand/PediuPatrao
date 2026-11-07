@@ -35,6 +35,15 @@ public class UsuarioService {
         if (usuario.getPerfil() == null) {
             throw new IllegalStateException("Escolha um perfil para o usuário.");
         }
+        if (usuario.getUsername() == null || usuario.getUsername().isBlank()) {
+            throw new IllegalStateException("Informe o nome de usuário.");
+        }
+        if (usuario.getPassword() == null || usuario.getPassword().isBlank()) {
+            throw new IllegalStateException("Informe a senha do usuário.");
+        }
+        if (usuarioRepository.findByUsername(usuario.getUsername()).isPresent()) {
+            throw new IllegalStateException("Já existe um usuário com esse nome.");
+        }
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword())); // Criptografa a senha
         usuarioRepository.save(usuario);
     }
@@ -64,6 +73,16 @@ public class UsuarioService {
 
             if (usuarioAtualizado.getPerfil() == null) {
                 throw new IllegalStateException("Escolha um perfil para o usuário.");
+            }
+
+            if (usuarioAtualizado.getUsername() == null || usuarioAtualizado.getUsername().isBlank()) {
+                throw new IllegalStateException("Informe o nome de usuário.");
+            }
+            boolean nomeEmUso = usuarioRepository.findByUsername(usuarioAtualizado.getUsername())
+                    .map(outro -> !outro.getId().equals(usuarioExistente.getId()))
+                    .orElse(false);
+            if (nomeEmUso) {
+                throw new IllegalStateException("Já existe um usuário com esse nome.");
             }
 
             usuarioExistente.setUsername(usuarioAtualizado.getUsername());

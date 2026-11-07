@@ -11,9 +11,23 @@
         <h2 class="fw-bold mb-0">
             <i class="bi bi-bag me-2 text-primary"></i>Pedidos
         </h2>
-        <a href="/pedidos/novo" class="btn btn-primary" th:if="${podeRegistrar}">
-            <i class="bi bi-plus-lg me-1"></i> Novo Pedido
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <form method="get" th:action="@{/pedidos}" class="d-flex align-items-center gap-2">
+                <a th:href="@{/pedidos}" class="btn"
+                   th:classappend="${ehHoje} ? 'btn-primary' : 'btn-outline-primary'">Hoje</a>
+                <label for="data" class="visually-hidden">Escolher dia</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
+                    <input type="date" id="data" name="data" class="form-control"
+                           th:value="${diaSelecionado}" th:max="${hojeIso}"
+                           onchange="this.form.submit()">
+                </div>
+            </form>
+            <button type="button" class="btn btn-primary" th:if="${podeRegistrar}"
+                    data-bs-toggle="modal" data-bs-target="#modalNovoPedido">
+                <i class="bi bi-plus-lg me-1"></i> Novo Pedido
+            </button>
+        </div>
     </div>
 
     <!-- Mensagens de feedback -->
@@ -50,7 +64,7 @@
                     <tr th:if="${#lists.isEmpty(pedidos)}">
                         <td colspan="9" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                            Nenhum pedido encontrado.
+                            <span th:text="${ehHoje} ? 'Nenhum pedido registrado hoje.' : 'Nenhum pedido em ' + ${diaFormatado} + '.'"></span>
                         </td>
                     </tr>
                     <!-- Linhas -->
@@ -117,9 +131,216 @@
             </table>
         </div>
         <div class="card-footer text-muted small" th:if="${!#lists.isEmpty(pedidos)}">
-            Total: <strong th:text="${#lists.size(pedidos)}"></strong> pedido(s)
+            <span th:text="${ehHoje} ? 'Hoje' : ${diaFormatado}"></span>:
+            <strong th:text="${#lists.size(pedidos)}"></strong> pedido(s), do mais recente para o mais antigo
         </div>
     </div>
+
+    <!-- Modal: novo pedido -->
+    <div class="modal fade" id="modalNovoPedido" tabindex="-1" aria-hidden="true" th:if="${podeRegistrar}">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <form id="formPedido" th:action="@{/pedidos/salvar}" th:object="${dados}" method="post" class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-bag-plus me-2 text-primary"></i>Novo pedido</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-7">
+                            <label for="clienteId" class="form-label fw-medium">Cliente</label>
+                            <select id="clienteId" class="form-select" th:field="*{clienteId}" required>
+                                <option value="" disabled selected>Selecione o cliente</option>
+                                <option th:each="cliente : ${clientes}"
+                                        th:value="${cliente.id}"
+                                        th:text="${cliente.nome}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="tipoAtendimento" class="form-label fw-medium">Atendimento</label>
+                            <select id="tipoAtendimento" class="form-select" th:field="*{tipoAtendimento}" required>
+                                <option value="" disabled selected>Selecione</option>
+                                <option value="ENTREGA">Entrega</option>
+                                <option value="RETIRADA">Retirada no balcão</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mb-2">Itens do pedido</h6>
+
+                    <div class="alert alert-light border" th:if="${#maps.isEmpty(produtosPorCategoria)}">
+                        Nenhum produto ativo cadastrado.
+                    </div>
+
+                    <ul class="nav nav-pills mb-3 flex-wrap gap-1" role="tablist" th:unless="${#maps.isEmpty(produtosPorCategoria)}">
+                        <li class="nav-item" role="presentation" th:each="grupo, st : ${produtosPorCategoria}">
+                            <button type="button" class="nav-link d-flex align-items-center gap-2"
+                                    th:classappend="${st.first} ? 'active'"
+                                    data-bs-toggle="pill" role="tab"
+                                    th:attr="data-bs-target='#aba-' + ${st.index}">
+                                <span th:text="${grupo.key}"></span>
+                                <span class="badge rounded-pill bg-light text-dark contagem-aba d-none"></span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade" th:each="grupo, st : ${produtosPorCategoria}"
+                             th:id="'aba-' + ${st.index}" role="tabpanel"
+                             th:classappend="${st.first} ? 'show active'">
+                            <ul class="list-group">
+                                <li class="list-group-item linha-produto d-flex flex-wrap align-items-center gap-2 py-2"
+                                    th:each="produto : ${grupo.value}"
+                                    th:attr="data-id=${produto.id},data-nome=${produto.nome},data-preco=${produto.preco}">
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium" th:text="${produto.nome}"></div>
+                                        <div class="text-muted small"
+                                             th:text="'R$ ' + ${#numbers.formatDecimal(produto.preco, 1, 'POINT', 2, 'COMMA')}"></div>
+                                    </div>
+                                    <div class="input-group input-group-sm" style="width: 130px;">
+                                        <button type="button" class="btn btn-outline-secondary btn-menos" aria-label="Diminuir">
+                                            <i class="bi bi-dash"></i>
+                                        </button>
+                                        <input type="number" class="form-control text-center campo-qtd" min="0" max="99" value="0"
+                                               aria-label="Quantidade">
+                                        <button type="button" class="btn btn-outline-secondary btn-mais" aria-label="Aumentar">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="border rounded p-3 mt-4 bg-light">
+                        <div class="fw-semibold mb-2">Resumo</div>
+                        <div id="resumoVazio" class="text-muted small">Nenhum item escolhido ainda.</div>
+                        <ul id="resumoItens" class="list-unstyled mb-0 small"></ul>
+                    </div>
+                </div>
+
+                <div class="modal-footer justify-content-between">
+                    <div>
+                        <div class="text-muted small">Total estimado</div>
+                        <div class="fs-4 fw-bold" id="totalEstimado">R$ 0,00</div>
+                        <div id="avisoItens" class="text-danger small d-none">Escolha pelo menos um item.</div>
+                        <div class="text-muted small">O valor final é calculado pelo sistema.</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Registrar pedido
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script th:inline="none" th:if="${podeRegistrar}">
+        (function () {
+            const modal = document.getElementById('modalNovoPedido');
+            const formulario = document.getElementById('formPedido');
+            const linhas = Array.from(modal.querySelectorAll('.linha-produto'));
+            const moeda = v => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(v);
+
+            function quantidade(linha) {
+                const valor = parseInt(linha.querySelector('.campo-qtd').value, 10);
+                return isNaN(valor) || valor < 0 ? 0 : Math.min(valor, 99);
+            }
+
+            function atualizarResumo() {
+                const lista = document.getElementById('resumoItens');
+                lista.replaceChildren();
+                let total = 0;
+                let escolhidos = 0;
+
+                linhas.forEach(linha => {
+                    const qtd = quantidade(linha);
+                    linha.classList.toggle('list-group-item-primary', qtd > 0);
+                    if (qtd === 0) return;
+                    escolhidos++;
+                    const subtotal = qtd * parseFloat(linha.dataset.preco);
+                    total += subtotal;
+
+                    const item = document.createElement('li');
+                    item.className = 'd-flex justify-content-between';
+                    const nome = document.createElement('span');
+                    nome.textContent = qtd + 'x ' + linha.dataset.nome;
+                    const valor = document.createElement('span');
+                    valor.className = 'text-muted';
+                    valor.textContent = moeda(subtotal);
+                    item.append(nome, valor);
+                    lista.appendChild(item);
+                });
+
+                // quantidade de itens escolhidos em cada aba
+                modal.querySelectorAll('.tab-pane').forEach(painel => {
+                    const marcados = Array.from(painel.querySelectorAll('.linha-produto'))
+                        .reduce((soma, linha) => soma + quantidade(linha), 0);
+                    const botao = modal.querySelector('[data-bs-target="#' + painel.id + '"] .contagem-aba');
+                    botao.textContent = marcados;
+                    botao.classList.toggle('d-none', marcados === 0);
+                });
+
+                document.getElementById('resumoVazio').classList.toggle('d-none', escolhidos > 0);
+                document.getElementById('totalEstimado').textContent = moeda(total);
+                if (escolhidos > 0) {
+                    document.getElementById('avisoItens').classList.add('d-none');
+                }
+            }
+
+            linhas.forEach(linha => {
+                const campo = linha.querySelector('.campo-qtd');
+                linha.querySelector('.btn-mais').addEventListener('click', () => {
+                    campo.value = Math.min(quantidade(linha) + 1, 99);
+                    atualizarResumo();
+                });
+                linha.querySelector('.btn-menos').addEventListener('click', () => {
+                    campo.value = Math.max(quantidade(linha) - 1, 0);
+                    atualizarResumo();
+                });
+                campo.addEventListener('input', atualizarResumo);
+            });
+
+            // Só os itens com quantidade entram no envio, numerados em sequência
+            formulario.addEventListener('submit', evento => {
+                let indice = 0;
+                linhas.forEach(linha => {
+                    const qtd = quantidade(linha);
+                    linha.querySelectorAll('input[type=hidden]').forEach(h => h.remove());
+                    if (qtd === 0) return;
+
+                    const produto = document.createElement('input');
+                    produto.type = 'hidden';
+                    produto.name = 'itens[' + indice + '].produtoId';
+                    produto.value = linha.dataset.id;
+                    const quantidadeEnviada = document.createElement('input');
+                    quantidadeEnviada.type = 'hidden';
+                    quantidadeEnviada.name = 'itens[' + indice + '].quantidade';
+                    quantidadeEnviada.value = qtd;
+                    linha.append(produto, quantidadeEnviada);
+                    indice++;
+                });
+
+                if (indice === 0) {
+                    evento.preventDefault();
+                    document.getElementById('avisoItens').classList.remove('d-none');
+                }
+            });
+
+            // Ao fechar, o formulário volta ao estado inicial
+            modal.addEventListener('hidden.bs.modal', () => {
+                formulario.reset();
+                linhas.forEach(linha => linha.querySelectorAll('input[type=hidden]').forEach(h => h.remove()));
+                const primeiraAba = modal.querySelector('.nav-link');
+                if (primeiraAba) bootstrap.Tab.getOrCreateInstance(primeiraAba).show();
+                atualizarResumo();
+            });
+
+            atualizarResumo();
+        })();
+    </script>
 
     <div th:if="${podeGerenciar}">
         <div class="modal fade" id="modalCancelar" tabindex="-1" aria-hidden="true">

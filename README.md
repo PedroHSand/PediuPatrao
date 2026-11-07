@@ -50,6 +50,7 @@ Não precisam do Atlas: usam mocks e `@WebMvcTest`.
 | Registrar pedido e avançar status | ❌ | ✅ | ✅ |
 | Aplicar desconto e cancelar pedido | ❌ | ✅ | ❌ |
 | Consultar auditoria | ✅ | ✅ | ❌ |
+| Dashboard e API de métricas | ✅ | ✅ | ❌ |
 | Produtos | ver | gerenciar | ver |
 
 A autorização é aplicada **no backend**, em duas camadas: regras de URL no `SecurityConfig` e `@PreAuthorize` nos services. Ocultar botões na tela é só conveniência.
@@ -90,16 +91,28 @@ A autorização é aplicada **no backend**, em duas camadas: regras de URL no `S
 - Consulta somente para ADMIN e GERENTE: tela `/auditoria`, com filtros, e `GET /api/auditoria`.
 - Senha, token e campos semelhantes nunca são gravados. Na consulta, telefone, CEP, número e complemento aparecem mascarados.
 
+### Dashboard administrativo
+Painel em `/dashboard` (ADMIN e GERENTE) que consome a API `/api/dashboard`, com os endpoints implementados no próprio projeto.
+- **Indicadores:** faturamento, pedidos, ticket médio, pedidos em preparo, pedidos que já saíram, produto mais vendido e totais de hoje, semana e mês.
+- **Gráficos:** faturamento por dia, pedidos por hora, vendas por categoria e entrega × retirada (Chart.js).
+- **Situação dos pedidos** por status e **ranking** de produtos mais vendidos.
+- **Filtros:** período (hoje, semana, mês ou datas), tipo de atendimento, status e categoria.
+- **Atualização:** automática a cada 30 segundos, com botão para atualizar na hora, e mensagens de carregamento, ausência de dados e erro.
+- **Regras:** venda é pedido não cancelado, faturamento usa o total já com desconto, fuso de Brasília e semana de segunda a domingo.
+- **Segurança:** a API e o Swagger só respondem a ADMIN e GERENTE (ATENDENTE recebe 403), validado no backend.
+- **Documentação:** Swagger em <http://localhost:8080/swagger-ui.html> (logado como ADMIN ou GERENTE) e os documentos em `docs/`: [requisitos](docs/requisitos.md), [endpoints](docs/api-endpoints.md) e [evidências de testes](docs/evidencias-testes.md).
+
 ### Qualidade
 - Regras de negócio nos services, com mensagens de erro claras nas telas e respostas `409` para regra de negócio, `403` para falta de permissão e `400` para parâmetro inválido na API.
 - Tentativas de acesso negado são registradas em log com usuário, método e caminho, sem dados sensíveis.
-- 49 testes automatizados: transições de status, cálculo de total e desconto, cancelamento, auditoria e permissões das APIs por perfil.
+- 84 testes automatizados: transições de status, cálculo de total e desconto, cancelamento, auditoria, permissões das APIs por perfil e métricas do dashboard.
 
 ## Principais alterações em relação ao projeto base
 - **Segurança:** `Perfil`, `UsuarioDetailsService` com o perfil do banco, `SecurityConfig` com regras por perfil e `@EnableMethodSecurity`, `/api/usuarios` deixou de ser público, CSRF religado.
-- **Pedidos:** `ItemDoPedido`, `ModoAtendimento`, `StatusPedido`, `NovoPedidoForm`, novos campos em `Pedido`, tela de novo pedido e lista reformulada com itens, total, responsável, saída e ações por perfil.
+- **Pedidos:** `ItemDoPedido`, `ModoAtendimento`, `StatusPedido`, `NovoPedidoForm`, novos campos em `Pedido`, modal de novo pedido (produtos separados por categoria) e lista reformulada com itens, total, responsável, saída e ações por perfil.
 - **Auditoria:** `EventoAuditoria`, `CampoModificado`, `AcaoAuditada`, `AuditoriaRepository`, `AuditoriaService` e a tela e API de consulta.
 - **Clientes:** a lista deixou de montar HTML com `innerHTML`, o que abria risco de XSS, e a exclusão envia o token CSRF.
+- **Dashboard:** pacote `dashboard` (controller, service, filtros e DTOs), consulta de pedidos por período no `PedidoRepository`, tela `dashboard.html`, link na sidebar e Swagger (springdoc) no `pom.xml`.
 - **Testes e configuração:** testes automatizados, `secrets.example.properties` e dependências de teste no `pom.xml`, sem alterar versões.
 
 ## Decisões de projeto
@@ -119,6 +132,7 @@ A autorização é aplicada **no backend**, em duas camadas: regras de URL no `S
 src/main/java/com/umc/pediupatrao
 ├── auditoria/    EventoAuditoria, CampoModificado, AcaoAuditada, ResumoAuditoria,
 │                 AuditoriaRepository, AuditoriaService, AuditoriaController
+├── dashboard/    DashboardController, DashboardService, FiltroDashboard, ParametrosFiltro e DTOs das respostas
 ├── config/       SecurityConfig, DataInitializer, MongoInitConfig
 ├── controller/   HomeController das telas, controllers REST de /api, ErrosDaApi, AtributosGlobais
 ├── dto/          NovoPedidoForm, NovoItemForm
@@ -126,5 +140,6 @@ src/main/java/com/umc/pediupatrao
 ├── exception/    NegocioException
 ├── repository/   repositórios do MongoDB
 └── service/      regras de negócio de clientes, produtos, pedidos e usuários
+docs/             requisitos, endpoints e evidências de testes do dashboard
 src/test/java     testes automatizados
 ```
