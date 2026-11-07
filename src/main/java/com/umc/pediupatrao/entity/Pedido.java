@@ -27,6 +27,33 @@ public class Pedido {
     private LocalDateTime entradaEm;
     private LocalDateTime saidaEm;
     private String saidaPor;
+    private String motivoCancelamento;
+    private String canceladoPor;
+    private LocalDateTime canceladoEm;
+
+    public String getMotivoCancelamento() {
+        return motivoCancelamento;
+    }
+
+    public void setMotivoCancelamento(String motivoCancelamento) {
+        this.motivoCancelamento = motivoCancelamento;
+    }
+
+    public String getCanceladoPor() {
+        return canceladoPor;
+    }
+
+    public void setCanceladoPor(String canceladoPor) {
+        this.canceladoPor = canceladoPor;
+    }
+
+    public LocalDateTime getCanceladoEm() {
+        return canceladoEm;
+    }
+
+    public void setCanceladoEm(LocalDateTime canceladoEm) {
+        this.canceladoEm = canceladoEm;
+    }
 
     public String getId() {
         return id;

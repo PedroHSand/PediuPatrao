@@ -37,29 +37,36 @@ body {
     padding: 20px;
 }
 
-@media (max-width: 768px) {
-    #sidebar {
-        position: fixed;
-        left: -250px;
-        top: 0;
-        height: 100%;
-        z-index: 1000;
-        transition: all 0.3s;
-    }
+/* Menu lateral recolhido: abre por cima da tela ao clicar no botão */
+#sidebar {
+    position: fixed;
+    left: -250px;
+    top: 0;
+    height: 100%;
+    z-index: 1000;
+    transition: all 0.3s;
+    overflow-y: auto;
+}
 
-    #sidebar.active {
-        left: 0;
-    }
+#sidebar.active {
+    left: 0;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.3);
+}
 
-    #content {
-        margin-left: 0;
-    }
+/* Os nomes das opções aparecem sempre, já que o menu abre por cima da tela */
+#sidebar .d-none.d-md-inline {
+    display: inline !important;
+}
 
-    .toggle-btn {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        z-index: 1100;
-        cursor: pointer;
-    }
+.toggle-btn {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1100;
+    cursor: pointer;
+}
+
+/* Espaço para o botão não cobrir o título das páginas */
+main {
+    padding-top: 3rem;
 }

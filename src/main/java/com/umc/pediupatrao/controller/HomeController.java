@@ -15,9 +15,15 @@ import com.umc.pediupatrao.service.ProdutoService;
 import com.umc.pediupatrao.service.UsuarioService;
 import java.math.BigDecimal;
 import java.security.Principal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -137,11 +143,21 @@ public class HomeController {
     // PEDIDOS
     // ========================
     @GetMapping("/pedidos")
-    public String pedidos(Model model, Authentication sessao) {
-        List<Pedido> pedidos = pedidoService.listarPedidos();
+    public String pedidos(@RequestParam(required = false) String data, Model model, Authentication sessao) {
+        LocalDate hoje = LocalDate.now();
+        LocalDate dia = hoje;
+        if (data != null && !data.isBlank()) {
+            try {
+                dia = LocalDate.parse(data);
+            } catch (DateTimeParseException e) {
+                model.addAttribute("erro", "Data inválida. Mostrando os pedidos de hoje.");
+            }
+        }
+        List<Pedido> pedidos = pedidoService.listarPedidosDoDia(dia);
 
+        List<Cliente> clientes = clienteService.listarClientes();
         Map<String, String> nomesClientes = new HashMap<>();
-        for (Cliente cliente : clienteService.listarClientes()) {
+        for (Cliente cliente : clientes) {
             nomesClientes.put(cliente.getId(), cliente.getNome());
         }
 
@@ -162,11 +178,24 @@ public class HomeController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_GERENTE"));
 
         model.addAttribute("pedidos", pedidos);
+        model.addAttribute("diaSelecionado", dia.toString());
+        model.addAttribute("diaFormatado", dia.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        model.addAttribute("hojeIso", hoje.toString());
+        model.addAttribute("ehHoje", dia.equals(hoje));
         model.addAttribute("abertos", abertos);
         model.addAttribute("podeGerenciar", podeGerenciar);
         model.addAttribute("proximosStatus", proximosStatus);
         model.addAttribute("nomesClientes", nomesClientes);
         model.addAttribute("podeRegistrar", podeRegistrar);
+        if (podeRegistrar) {
+            // dados do modal de novo pedido
+            List<Produto> produtosAtivos = produtoService.listarProdutos().stream()
+                    .filter(p -> Boolean.TRUE.equals(p.getAtivo()))
+                    .toList();
+            model.addAttribute("dados", new NovoPedidoForm());
+            model.addAttribute("clientes", clientes);
+            model.addAttribute("produtosPorCategoria", agruparPorCategoria(produtosAtivos));
+        }
         model.addAttribute("content", "pedidos :: content");
         log.info("Carregando fragmento: pedidos :: content");
         return "layout";
@@ -207,18 +236,26 @@ public class HomeController {
         return "redirect:/pedidos";
     }
 
+    // O cadastro de pedido agora é um modal da tela de pedidos
     @GetMapping("/pedidos/novo")
-    public String novoPedidoForm(Model model) {
-        NovoPedidoForm dados = new NovoPedidoForm();
-        List<Produto> produtosAtivos = produtoService.listarProdutos().stream()
-                .filter(p -> Boolean.TRUE.equals(p.getAtivo()))
-                .toList();
+    public String novoPedidoForm() {
+        return "redirect:/pedidos";
+    }
 
-        model.addAttribute("dados", dados);
-        model.addAttribute("clientes", clienteService.listarClientes());
-        model.addAttribute("produtos", produtosAtivos);
-        model.addAttribute("content", "pedidos/novo :: content");
-        return "layout";
+    // Categorias na ordem do cardápio (pizza, esfiha, bebida) e as demais em ordem alfabética.
+    private Map<String, List<Produto>> agruparPorCategoria(List<Produto> produtos) {
+        List<String> ordemFixa = List.of("Pizza", "Esfiha", "Bebida");
+        Comparator<String> ordem = Comparator
+                .comparingInt((String tipo) -> ordemFixa.contains(tipo) ? ordemFixa.indexOf(tipo) : ordemFixa.size())
+                .thenComparing(String.CASE_INSENSITIVE_ORDER);
+
+        Map<String, List<Produto>> grupos = new TreeMap<>(ordem);
+        for (Produto produto : produtos) {
+            String tipo = produto.getTipo() == null || produto.getTipo().isBlank() ? "Outros" : produto.getTipo();
+            grupos.computeIfAbsent(tipo, chave -> new ArrayList<>()).add(produto);
+        }
+        grupos.values().forEach(lista -> lista.sort(Comparator.comparing(Produto::getNome, String.CASE_INSENSITIVE_ORDER)));
+        return grupos;
     }
 
     @PostMapping("/pedidos/salvar")
@@ -230,8 +267,17 @@ public class HomeController {
             return "redirect:/pedidos";
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("erro", e.getMessage());
-            return "redirect:/pedidos/novo";
+            return "redirect:/pedidos";
         }
+    }
+
+    // ========================
+    // DASHBOARD
+    // ========================
+    @GetMapping("/dashboard")
+    public String dashboard(Model model) {
+        model.addAttribute("content", "dashboard :: content");
+        return "layout";
     }
 
     // ========================

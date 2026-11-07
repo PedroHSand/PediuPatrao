@@ -17,8 +17,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -115,8 +117,17 @@ public class PedidoService {
                 .collect(Collectors.joining(", "));
     }
 
+    // Do mais recente para o mais antigo. Pedidos sem data de entrada ficam no fim.
     public List<Pedido> listarPedidos() {
-        return pedidoRepository.findAll();
+        return pedidoRepository.findAll().stream()
+                .sorted(Comparator.comparing(Pedido::getEntradaEm, Comparator.nullsLast(Comparator.reverseOrder())))
+                .collect(Collectors.toList());
+    }
+
+    public List<Pedido> listarPedidosDoDia(LocalDate dia) {
+        return listarPedidos().stream()
+                .filter(p -> p.getEntradaEm() != null && p.getEntradaEm().toLocalDate().equals(dia))
+                .collect(Collectors.toList());
     }
 
     @PreAuthorize("hasAnyRole('GERENTE', 'ATENDENTE')")
@@ -188,6 +199,9 @@ public class PedidoService {
         }
 
         pedido.setStatus(StatusPedido.CANCELADO.name());
+        pedido.setMotivoCancelamento(justificativa.trim());
+        pedido.setCanceladoPor(usuarioLogado());
+        pedido.setCanceladoEm(LocalDateTime.now());
         Pedido gravado = pedidoRepository.save(pedido);
 
         List<CampoModificado> mudancas = List.of(
