@@ -4,6 +4,10 @@ Sistema web de pedidos para uma pizzaria, feito com **Java 21, Spring Boot 3.4, 
 
 Esta versão evolui o projeto base com **controle de acesso por perfil (RBAC), gestão do fluxo de pedidos, cancelamento e desconto restritos ao gerente e auditoria persistente**.
 
+## Apresentação
+
+Vídeo de demonstração do dashboard administrativo: [assistir no Google Drive](https://drive.google.com/file/d/16HyykvXPuTlrSjtfr_TYlyE8Nm0CTOfv/view?usp=sharing)
+
 ## Como rodar
 
 ### Requisitos
