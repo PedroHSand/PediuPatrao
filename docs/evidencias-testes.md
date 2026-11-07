@@ -4,7 +4,7 @@
 
 | Item | Valor |
 |---|---|
-| Data da execução | 02/11/2026 |
+| Data da execução | 02/11/2026 e 07/11/2026 |
 | Java | 21.0.2 |
 | Spring Boot | 3.4.4 |
 | Banco | MongoDB Atlas (banco `pizzaria`) |
@@ -103,7 +103,48 @@ Conferências cruzadas:
 | `/resumo?inicio=2025-10-31&fim=2026-11-02` (mais de 366 dias) | 400 | 400: "O período máximo de consulta é de 366 dias." |
 | `/produtos/mais-vendidos?inicio=2026-10-31&fim=2026-11-02&limite=99` | 400 | 400: "O limite deve ficar entre 1 e 20." |
 
+### 3.4 Teste da semana e prints
+
+Em 07/11/2026 foram registrados mais 6 pedidos pelo usuário `balcao`: 4 finalizados, 1 com desconto de 15% aplicado pelo `gerencia` e 1 cancelado pelo `gerencia` com justificativa. Assim a semana passou a ter vendas em dois dias.
+
+Resultado no dashboard com o período "Esta semana", de 02/11 a 07/11/2026:
+
+| Indicador | Valor |
+|---|---|
+| Faturamento | R$ 2.582,08 |
+| Pedidos | 18 |
+| Ticket médio | R$ 143,45 |
+| Em preparo | 3 |
+| Já saíram | 12 |
+| Mais vendido | Esfiha de Carne |
+| Vendas de hoje | 5 pedidos, R$ 887,03 |
+
+Conferências:
+- 02/11 com R$ 1.695,05 mais 07/11 com R$ 887,03 dá R$ 2.582,08, igual ao faturamento da semana.
+- Hoje foram registrados 6 pedidos, mas só 5 contam como venda, porque 1 foi cancelado.
+- Situação dos pedidos: 2 recebidos, 3 em preparação, 1 pronto, 1 retirado e 11 finalizados somam as 18 vendas. Os 3 cancelados aparecem só nessa consulta.
+
+**Dashboard com o período da semana**
+
+![Dashboard da semana](evidencias/01-dashboard-semana.png)
+
+**Atendente tentando abrir o dashboard: acesso negado**
+
+![Atendente sem acesso](evidencias/02-atendente-sem-acesso.png)
+
+**Filtro com data inicial depois da final: mensagem de erro na tela**
+
+![Erro no filtro de datas](evidencias/03-erro-filtro-datas.png)
+
+**Endpoints do dashboard no Swagger**
+
+![Swagger](evidencias/04-swagger.png)
+
+**Testes automatizados: 84 testes, nenhuma falha**
+
+![Testes](evidencias/05-testes.png)
+
 ## 4. Limitações conhecidas
 
-- Os valores dependem dos pedidos que estão no banco no momento do teste. Os números deste documento são do dia 02/11/2026 e mudam conforme novos pedidos são registrados ou têm o status alterado. Os pedidos mais antigos do banco são de 13/10 e 14/10/2026 e ficam fora do período usado nos exemplos.
-- A lista de categorias do filtro da tela vem dos produtos cadastrados (`/api/dashboard/categorias`). Os dados de teste foram cadastrados em 02/11/2026: 24 produtos (10 pizzas, 9 bebidas e 5 esfihas), 10 clientes com endereços de Suzano e pedidos de famílias. Todos os pedidos de teste foram registrados no mesmo dia, então o gráfico por dia tem um único ponto e o gráfico por hora concentra os pedidos na mesma faixa.
+- Os valores dependem dos pedidos que estão no banco no momento do teste. Os números das seções 3.2 e 3.3 são de 02/11/2026, os da seção 3.4 são de 07/11/2026, e mudam conforme novos pedidos são registrados ou têm o status alterado. Os pedidos mais antigos do banco são de 13/10 e 14/10/2026 e ficam fora do período usado nos exemplos.
+- A lista de categorias do filtro da tela vem dos produtos cadastrados (`/api/dashboard/categorias`). Os dados de teste foram cadastrados em 02/11/2026: 24 produtos (10 pizzas, 9 bebidas e 5 esfihas) e 10 clientes. Os pedidos de teste foram registrados em 02/11 e 07/11/2026, por isso o gráfico por dia mostra venda nesses dois dias e zero nos dias entre eles.

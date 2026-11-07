@@ -59,3 +59,91 @@ Todos usam `GET`, aceitam os filtros `periodo`, `inicio`, `fim`, `tipoAtendiment
 | `/api/dashboard/produtos/mais-vendidos` (parâmetro extra `limite`) | RF04 |
 
 A documentação detalhada, com exemplos de requisição e resposta, fica em `docs/api-endpoints.md`.
+
+## Modelo de dados
+
+O dashboard lê três coleções do MongoDB: `pedidos`, `produtos` e `clientes`. Os itens não têm coleção própria, eles ficam guardados dentro de cada pedido.
+
+```mermaid
+classDiagram
+    class Pedido {
+        String id
+        String clienteId
+        List~ItemDoPedido~ itens
+        ModoAtendimento tipoAtendimento
+        String status
+        BigDecimal percentualDesconto
+        BigDecimal valorTotal
+        String registradoPor
+        LocalDateTime entradaEm
+        String saidaPor
+        LocalDateTime saidaEm
+        String canceladoPor
+        String motivoCancelamento
+        LocalDateTime canceladoEm
+    }
+    class ItemDoPedido {
+        String produtoId
+        String nomeProduto
+        int quantidade
+        BigDecimal precoUnitario
+    }
+    class Produto {
+        String id
+        String nome
+        String tipo
+        Double preco
+        Boolean ativo
+    }
+    class Cliente {
+        String id
+        String nome
+        String telefone
+        String cep
+        String logradouro
+        String bairro
+        String cidade
+    }
+    class ModoAtendimento {
+        <<enumeration>>
+        ENTREGA
+        RETIRADA
+    }
+    class StatusPedido {
+        <<enumeration>>
+        RECEBIDO
+        EM_PREPARACAO
+        PRONTO
+        SAIU_PARA_ENTREGA
+        RETIRADO
+        FINALIZADO
+        CANCELADO
+    }
+    Pedido "1" *-- "1..*" ItemDoPedido : itens
+    ItemDoPedido "*" --> "1" Produto : produtoId
+    Pedido "*" --> "1" Cliente : clienteId
+    Pedido --> ModoAtendimento
+    Pedido ..> StatusPedido
+```
+
+Como o dashboard usa cada parte:
+
+- **Pedido:** `entradaEm` define o dia e a hora da venda, `valorTotal` entra no faturamento, `status` separa vendas de cancelados e `tipoAtendimento` alimenta o gráfico de entrega e retirada.
+- **ItemDoPedido:** guarda o preço do produto no momento da venda. Se o preço mudar depois, o histórico não muda.
+- **Produto:** o campo `tipo` vira a categoria nos gráficos e no filtro.
+- **Cliente:** fica fora das respostas do dashboard, porque o painel não precisa de dados pessoais.
+
+## Decisões de projeto
+
+| Decisão | Motivo |
+|---|---|
+| Um endpoint para cada bloco do painel | Cada card e gráfico carrega sozinho. Se um falhar, os outros continuam aparecendo, e a API pode ser usada por outro sistema no futuro. |
+| Cálculos feitos no service, em Java | O MongoDB devolve só os pedidos do período e o service faz as contas. Assim as regras ficam num lugar só e dá para testar sem banco. |
+| Período máximo de 366 dias | Evita que uma consulta muito grande traga todos os pedidos de uma vez e deixe o sistema lento. |
+| Venda é todo pedido que não foi cancelado | Pedido cancelado não gerou dinheiro, então não pode entrar no faturamento. Ele aparece só na situação dos pedidos. |
+| Fuso horário de Brasília | O servidor pode estar em outro fuso. Sem isso, um pedido feito às 22h poderia contar no dia seguinte. |
+| Desconto distribuído entre os itens | O desconto é do pedido inteiro, mas os gráficos mostram valores por categoria e por produto. Distribuindo o desconto, a soma das categorias fica igual ao faturamento. |
+| Categorias vêm do cadastro de produtos | Se a pizzaria cadastrar um tipo novo, como Lanche, ele aparece no filtro sem mudar o código. |
+| Valores em BigDecimal | Evita erros de arredondamento nos centavos, que acontecem com double. |
+| Atualização automática a cada 30 segundos | O painel fica atualizado sem recarregar a página, e para de atualizar quando a aba não está aberta, para não fazer chamadas à toa. |
+| Acesso só para ADMIN e GERENTE | São os perfis que acompanham o negócio. As respostas não trazem nome, telefone nem endereço de cliente, porque o painel não precisa disso. |
